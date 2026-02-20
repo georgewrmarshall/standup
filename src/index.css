@@ -1,0 +1,92 @@
+@import '../node_modules/@metamask/design-tokens/dist/styles.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Geist */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/Geist/Geist-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: italic;
+  font-weight: 400;
+  src: url('/fonts/Geist/Geist-RegularItalic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 500;
+  src: url('/fonts/Geist/Geist-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: italic;
+  font-weight: 500;
+  src: url('/fonts/Geist/Geist-MediumItalic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/Geist/Geist-Bold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Geist';
+  font-style: italic;
+  font-weight: 700;
+  src: url('/fonts/Geist/Geist-BoldItalic.woff2') format('woff2');
+}
+
+/* MM Sans */
+@font-face {
+  font-family: 'MMSans';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/MMSans/MMSans-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'MMSans';
+  font-style: normal;
+  font-weight: 500;
+  src: url('/fonts/MMSans/MMSans-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'MMSans';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/MMSans/MMSans-Bold.woff2') format('woff2');
+}
+
+/* MM Poly */
+@font-face {
+  font-family: 'MMPoly';
+  font-style: normal;
+  font-weight: 400;
+  src: url('/fonts/MMPoly/MMPoly-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'MMPoly';
+  font-style: normal;
+  font-weight: 500;
+  src: url('/fonts/MMPoly/MMPoly-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'MMPoly';
+  font-style: normal;
+  font-weight: 700;
+  src: url('/fonts/MMPoly/MMPoly-Regular.woff2') format('woff2');
+}

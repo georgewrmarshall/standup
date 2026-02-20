@@ -1,47 +1,111 @@
-# MetaMask Module Template
+# Standup App - AI-First Daily Standup Assistant
 
-This TypeScript module is maintained in the style of the MetaMask team.
+An AI-powered standup app built with MetaMask Design System components to help track todos, GitHub PRs, Jira tickets, and generate daily standup messages for Slack.
 
-## Template Instructions
+## Features
 
-Follow these instructions when using this template.
+- **Todo Management**: Track daily todos with priority levels (P0-P3) and markdown export
+- **GitHub Integration**: Monitor PRs across MetaMask repositories
+- **Jira Board**: Track DSYS project tickets in kanban view
+- **Standup Generator**: Automatically generate formatted Slack standup messages
+- **AI-Powered**: Uses Claude Code with MCP servers for intelligent assistance
 
-- Update the package name, referenced in the following places:
-  - The `name` field of `package.json`
-  - The README title
-  - The README "Usage" section
-- Update the package description
-  - The package description is referenced at the beginning of the README, and in the `description` field of `package.json`.
-- Update the repository URL, referenced in the following places:
-  - `repository` field of `package.json`
-  - The links in the API section of the README
-- If your project has side effects, update the `sideEffects` field of
-  `package.json` to `true`, or an array of file globs that match the files that
-  have side effects.
-- Update the pull request template (`.github/pull_request_template.md`) to remove the `Examples` section that is specific to this template.
-- Update the README "Usage" section, or remove it if it's not needed.
-- Update the CODEOWNERS file to set the appropriate code owners for the repository (typically one or more engineering teams)
-  - Ensure each referenced team has write permission, and that the engineering team still has write permission.
-- Delete these instructions.
+## Tech Stack
+
+- React 18 with TypeScript
+- MetaMask Design System components
+- Tailwind CSS with MetaMask preset
+- Vite for build tooling
+- React Router for navigation
+- Date-fns for date handling
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- Yarn 4.x
+- Claude Code with MCP servers configured:
+  - GitHub MCP for PR tracking
+  - Atlassian MCP for Jira integration
 
 ## Installation
 
-`yarn add @metamask/metamask-module-template`
+```bash
+# Install dependencies
+yarn install
 
-or
+# Start development server
+yarn dev
+```
 
-`npm install @metamask/metamask-module-template`
+The app will be available at http://localhost:3000
+
+## Project Structure
+
+```
+standup/
+├── .claude/               # Claude Code configuration
+│   └── skills/           # AI skills for standup workflow
+├── public/               # Static assets
+│   └── fonts/           # MetaMask font files
+├── src/
+│   ├── components/      # Reusable UI components
+│   ├── pages/          # Page components
+│   ├── stores/         # State management
+│   └── main.tsx        # App entry point
+├── todos/              # Markdown todo storage
+├── standups/           # Generated standup messages
+└── CLAUDE.md           # AI assistant instructions
+```
+
+## MCP Configuration
+
+This app works best with the following MCP servers:
+
+### GitHub MCP
+Tracks PRs across these repositories:
+- MetaMask/metamask-design-system
+- MetaMask/metamask-extension
+- MetaMask/metamask-mobile
+
+### Atlassian MCP
+Connects to Consensys Software Jira:
+- Project: DSYS
+- Board: https://consensyssoftware.atlassian.net/jira/software/c/projects/DSYS
 
 ## Usage
 
-_Add examples here_
+### Daily Workflow
 
-## API
+1. **Morning Setup**
+   - Open the Todos page and review yesterday's items
+   - Mark completed tasks
+   - Add new todos for today
 
-See our documentation:
+2. **Check PR Status**
+   - Navigate to Pull Requests page
+   - Review open PRs and their review status
+   - Address any changes requested
 
-- [Latest published API documentation](https://metamask.github.io/metamask-module-template/latest/)
-- [Latest development API documentation](https://metamask.github.io/metamask-module-template/staging/)
+3. **Update Jira Board**
+   - Go to Jira Board page
+   - Move tickets through workflow states
+   - Check sprint progress
+
+4. **Generate Standup**
+   - Click on Standup Generator
+   - Review the auto-generated message
+   - Copy and paste to Slack thread
+
+### AI Skills
+
+The app includes several AI skills in `.claude/skills/`:
+
+- `standup-generate`: Generates daily standup message
+- `todo-review`: Reviews and organizes todos
+- `pr-status`: Checks PR status across repos
+- `jira-sync`: Syncs Jira ticket information
 
 ## Contributing
 

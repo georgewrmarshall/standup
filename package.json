@@ -1,14 +1,14 @@
 {
-  "name": "@metamask/metamask-module-template",
+  "name": "standup-app",
   "version": "0.0.0",
-  "description": "The MetaMask Node module template",
-  "homepage": "https://github.com/MetaMask/metamask-module-template#readme",
+  "description": "AI-first standup app for tracking todos, GitHub, Jira, and Slack",
+  "homepage": "https://github.com/georgemarshall/standup#readme",
   "bugs": {
-    "url": "https://github.com/MetaMask/metamask-module-template/issues"
+    "url": "https://github.com/georgemarshall/standup/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/MetaMask/metamask-module-template.git"
+    "url": "https://github.com/georgemarshall/standup.git"
   },
   "sideEffects": false,
   "exports": {
@@ -31,7 +31,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "ts-bridge --project tsconfig.build.json --clean",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:lib": "ts-bridge --project tsconfig.build.json --clean",
     "build:docs": "typedoc",
     "lint": "yarn lint:eslint && yarn lint:constraints && yarn lint:misc --check && yarn lint:dependencies --check && yarn lint:changelog",
     "lint:changelog": "auto-changelog validate --prettier",
@@ -45,21 +48,37 @@
     "test": "vitest && attw --pack",
     "test:watch": "vitest --watch"
   },
+  "dependencies": {
+    "@metamask/design-system-react": "latest",
+    "@metamask/design-tokens": "latest",
+    "@octokit/rest": "^20.0.0",
+    "date-fns": "^3.3.1",
+    "gray-matter": "^4.0.3",
+    "marked": "^12.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.0"
+  },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.15.3",
     "@lavamoat/allow-scripts": "^3.0.4",
     "@lavamoat/preinstall-always-fail": "^2.0.0",
     "@metamask/auto-changelog": "^5.3.0",
+    "@metamask/design-system-tailwind-preset": "latest",
     "@metamask/eslint-config": "^15.0.0",
     "@metamask/eslint-config-nodejs": "^15.0.0",
     "@metamask/eslint-config-typescript": "^15.0.0",
     "@metamask/eslint-config-vitest": "^15.0.0",
     "@ts-bridge/cli": "^0.6.3",
     "@types/node": "^18.18",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "@typescript-eslint/utils": "^8.6.0",
+    "@vitejs/plugin-react": "^4.2.1",
     "@vitest/coverage-istanbul": "^3.0.7",
     "@vitest/eslint-plugin": "^1.1.4",
     "@yarnpkg/types": "^4.0.0-rc.52",
+    "autoprefixer": "^10.4.17",
     "depcheck": "^1.4.3",
     "eslint": "^9.11.0",
     "eslint-config-prettier": "^9.1.0",
@@ -69,8 +88,10 @@
     "eslint-plugin-n": "^17.10.3",
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-promise": "^7.1.0",
+    "postcss": "^8.4.35",
     "prettier": "^3.3.3",
     "prettier-plugin-packagejson": "^2.5.8",
+    "tailwindcss": "^3.4.1",
     "ts-node": "^10.7.0",
     "typedoc": "^0.26.11",
     "typescript": "~5.7.3",
