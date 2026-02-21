@@ -19,6 +19,36 @@ import {
 } from '@metamask/design-system-react';
 import { useTodoStore } from '../stores/todoStore';
 
+const yesterdayStandup = `_February 20, 2026_
+
+**Yesterday**
+
+- PR reviews ✅
+- Initial migration doc to go over on Monday ✅
+- Bug: Reverted fix for Mobile TextField placeholder alignment bug ✅
+- Design system release ✅
+- Standardized all react native readmes according to component-documentation cursor rule ✅
+
+**Today**
+
+- PR reviews
+- Header alignment sync with Brian
+- Bug: Extension MM Poly font rendering
+- Bug: Mobile Intermittent TextField placeholder alignment issue
+- Bug: Mobile Header layout flickering
+- Storybook remove stories failing CI test
+- Component metrics
+- Update mobile with new MMDS version
+- Update extension with new MMDS version
+
+**Blockers**
+
+- ADRs for enum migration and central types need final review. Are there any questions left or anything preventing them from being approved and merged?
+
+**Backlog**
+
+- More storybook clean up`;
+
 const Todos: React.FC = () => {
   const { todos, addTodo, toggleTodo, deleteTodo, loadTodos, generateStandupMarkdown, saveStandupToFile } =
     useTodoStore();

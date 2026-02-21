@@ -83,7 +83,7 @@ export const useTodoStore = (): TodoStore => {
       let markdown = `_${displayDate}_\n\n`;
 
       // Yesterday section
-      markdown += `**Yesterday**\n\n`;
+      markdown += `Yesterday\n\n`;
       if (completed.length > 0) {
         completed.forEach(todo => {
           markdown += `- ${todo.text} ✅\n`;
@@ -100,7 +100,7 @@ export const useTodoStore = (): TodoStore => {
       markdown += '\n';
 
       // Today section
-      markdown += `**Today**\n\n`;
+      markdown += `Today\n\n`;
       if (notCompleted.length > 0) {
         notCompleted.forEach(todo => {
           markdown += `- ${todo.text}\n`;
@@ -111,11 +111,11 @@ export const useTodoStore = (): TodoStore => {
       markdown += '\n';
 
       // Blockers section
-      markdown += `**Blockers**\n\n`;
+      markdown += `Blockers\n\n`;
       markdown += `- None\n\n`;
 
       // Backlog section
-      markdown += `**Backlog**\n\n`;
+      markdown += `Backlog\n\n`;
       markdown += `- \n`;
 
       return markdown;
@@ -146,6 +146,9 @@ export const useTodoStore = (): TodoStore => {
         } catch {
           todos = [];
         }
+      } else {
+        // If no stored todos, try to load from latest standup markdown
+        loadTodosFromLatestStandup();
       }
       notify();
     },
@@ -158,4 +161,48 @@ export const useTodoStore = (): TodoStore => {
 
 const saveTodosToStorage = () => {
   localStorage.setItem('standup-todos', JSON.stringify(todos));
+};
+
+const loadTodosFromLatestStandup = async () => {
+  try {
+    // Try to fetch the latest standup file
+    // Get today's date and yesterday's date
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const yesterday = format(new Date(Date.now() - 86400000), 'yyyy-MM-dd');
+
+    // Try to load today's standup first, then yesterday's
+    for (const date of [today, yesterday]) {
+      try {
+        const response = await fetch(`/standups/${date}.md`);
+        if (response.ok) {
+          const markdown = await response.text();
+
+          // Parse the "Today" section
+          const todayMatch = markdown.match(/Today\n\n([\s\S]*?)(?=\n\n[A-Z]|$)/);
+          if (todayMatch) {
+            const todayTasks = todayMatch[1]
+              .split('\n')
+              .filter(line => line.trim().startsWith('-'))
+              .map(line => line.replace(/^-\s*/, '').trim());
+
+            // Convert to todos
+            todos = todayTasks.map((text, index) => ({
+              id: Date.now().toString() + index,
+              text,
+              completed: false,
+              createdAt: new Date().toISOString(),
+            }));
+
+            saveTodosToStorage();
+            return;
+          }
+        }
+      } catch {
+        // Continue to next date
+        continue;
+      }
+    }
+  } catch (error) {
+    console.log('Could not load from standup files, starting fresh');
+  }
 };
