@@ -233,7 +233,6 @@ const Todos: React.FC = () => {
             <Button
               variant={ButtonVariant.Secondary}
               size={ButtonSize.Lg}
-              startIconName={IconName.MessageQuestion}
               onClick={handleGenerateStandup}
               isLoading={isGenerating}
               className="w-full sm:flex-1"
