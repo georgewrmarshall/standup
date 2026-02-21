@@ -14,7 +14,8 @@ interface TodoStore {
   addTodo: (text: string) => void;
   toggleTodo: (id: string) => void;
   deleteTodo: (id: string) => void;
-  generateStandup: () => Promise<void>;
+  generateStandupMarkdown: () => string;
+  saveStandupToFile: (markdown: string) => void;
   loadTodos: () => void;
   saveTodos: () => void;
 }
@@ -73,32 +74,55 @@ export const useTodoStore = (): TodoStore => {
       saveTodosToStorage();
     },
 
-    generateStandup: async () => {
-      const date = format(new Date(), 'yyyy-MM-dd');
+    generateStandupMarkdown: () => {
       const displayDate = format(new Date(), 'MMMM d, yyyy');
 
       const completed = todos.filter(todo => todo.completed);
       const notCompleted = todos.filter(todo => !todo.completed);
 
-      let markdown = `# Standup - ${displayDate}\n\n`;
+      let markdown = `_${displayDate}_\n\n`;
 
+      // Yesterday section
+      markdown += `**Yesterday**\n\n`;
       if (completed.length > 0) {
-        markdown += `## Completed ✅\n`;
         completed.forEach(todo => {
-          markdown += `- ${todo.text}\n`;
+          markdown += `- ${todo.text} ✅\n`;
         });
-        markdown += '\n';
       }
-
       if (notCompleted.length > 0) {
-        markdown += `## Not Completed ❌\n`;
+        notCompleted.forEach(todo => {
+          markdown += `- ${todo.text} ❌\n`;
+        });
+      }
+      if (completed.length === 0 && notCompleted.length === 0) {
+        markdown += `- No tasks\n`;
+      }
+      markdown += '\n';
+
+      // Today section
+      markdown += `**Today**\n\n`;
+      if (notCompleted.length > 0) {
         notCompleted.forEach(todo => {
           markdown += `- ${todo.text}\n`;
         });
-        markdown += '\n';
+      } else {
+        markdown += `- No tasks planned\n`;
       }
+      markdown += '\n';
 
-      // Download the markdown file
+      // Blockers section
+      markdown += `**Blockers**\n\n`;
+      markdown += `- None\n\n`;
+
+      // Backlog section
+      markdown += `**Backlog**\n\n`;
+      markdown += `- \n`;
+
+      return markdown;
+    },
+
+    saveStandupToFile: (markdown: string) => {
+      const date = format(new Date(), 'yyyy-MM-dd');
       const blob = new Blob([markdown], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -107,7 +131,8 @@ export const useTodoStore = (): TodoStore => {
       a.click();
       URL.revokeObjectURL(url);
 
-      // Remove completed todos
+      // Remove completed todos, keep incomplete for today
+      const notCompleted = todos.filter(todo => !todo.completed);
       todos = notCompleted;
       notify();
       saveTodosToStorage();
