@@ -10,32 +10,10 @@
     "type": "git",
     "url": "https://github.com/georgemarshall/standup.git"
   },
-  "sideEffects": false,
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.mts",
-        "default": "./dist/index.mjs"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
-    },
-    "./package.json": "./package.json"
-  },
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.cts",
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "build:lib": "ts-bridge --project tsconfig.build.json --clean",
-    "build:docs": "typedoc",
     "lint": "yarn lint:eslint && yarn lint:constraints && yarn lint:misc --check && yarn lint:dependencies --check && yarn lint:changelog",
     "lint:changelog": "auto-changelog validate --prettier",
     "lint:constraints": "yarn constraints",
@@ -44,8 +22,7 @@
     "lint:eslint": "eslint .",
     "lint:fix": "yarn lint:eslint --fix && yarn lint:constraints --fix && yarn lint:misc --write && yarn lint:dependencies:fix && yarn lint:changelog",
     "lint:misc": "prettier '**/*.json' '**/*.md' '**/*.yml' '!.yarnrc.yml' --ignore-path .gitignore --no-error-on-unmatched-pattern",
-    "prepack": "./scripts/prepack.sh",
-    "test": "vitest && attw --pack",
+    "test": "vitest",
     "test:watch": "vitest --watch"
   },
   "dependencies": {
@@ -60,7 +37,8 @@
     "marked": "^12.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.22.0"
+    "react-router-dom": "^6.22.0",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.15.3",
@@ -105,10 +83,6 @@
   "packageManager": "yarn@4.10.3",
   "engines": {
     "node": "^20 || ^22 || >=24"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
   },
   "lavamoat": {
     "allowScripts": {

@@ -36,36 +36,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useTodoStore } from '../stores/todoStore';
 
-const yesterdayStandup = `_February 20, 2026_
-
-**Yesterday**
-
-- PR reviews ✅
-- Initial migration doc to go over on Monday ✅
-- Bug: Reverted fix for Mobile TextField placeholder alignment bug ✅
-- Design system release ✅
-- Standardized all react native readmes according to component-documentation cursor rule ✅
-
-**Today**
-
-- PR reviews
-- Header alignment sync with Brian
-- Bug: Extension MM Poly font rendering
-- Bug: Mobile Intermittent TextField placeholder alignment issue
-- Bug: Mobile Header layout flickering
-- Storybook remove stories failing CI test
-- Component metrics
-- Update mobile with new MMDS version
-- Update extension with new MMDS version
-
-**Blockers**
-
-- ADRs for enum migration and central types need final review. Are there any questions left or anything preventing them from being approved and merged?
-
-**Backlog**
-
-- More storybook clean up`;
-
 interface SortableTodoItemProps {
   id: string;
   text: string;
@@ -135,8 +105,14 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({ id, text, completed
 };
 
 const Todos: React.FC = () => {
-  const { todos, addTodo, toggleTodo, deleteTodo, reorderTodos, loadTodos, generateStandupMarkdown, saveStandupToFile } =
-    useTodoStore();
+  const todos = useTodoStore((state) => state.todos);
+  const addTodo = useTodoStore((state) => state.addTodo);
+  const toggleTodo = useTodoStore((state) => state.toggleTodo);
+  const deleteTodo = useTodoStore((state) => state.deleteTodo);
+  const reorderTodos = useTodoStore((state) => state.reorderTodos);
+  const loadTodos = useTodoStore((state) => state.loadTodos);
+  const generateStandupMarkdown = useTodoStore((state) => state.generateStandupMarkdown);
+  const saveStandupToFile = useTodoStore((state) => state.saveStandupToFile);
   const [newTodoText, setNewTodoText] = useState('');
   const [standupMarkdown, setStandupMarkdown] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
