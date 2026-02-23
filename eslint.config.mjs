@@ -1,46 +1,17 @@
-import base, { createConfig } from '@metamask/eslint-config';
-import nodejs from '@metamask/eslint-config-nodejs';
-import typescript from '@metamask/eslint-config-typescript';
-import vitest from '@metamask/eslint-config-vitest';
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import prettier from 'eslint-config-prettier';
 
-const config = createConfig([
+export default tseslint.config(
   {
-    ignores: ['dist/', 'docs/', '.yarn/'],
+    ignores: ['dist/', 'docs/', '.yarn/', 'node_modules/'],
   },
-
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
-    extends: base,
-
-    languageOptions: {
-      sourceType: 'module',
-      parserOptions: {
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
-
-    settings: {
-      'import-x/extensions': ['.js', '.mjs'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
-
-  {
-    files: ['**/*.ts'],
-    extends: typescript,
-  },
-
-  {
-    files: ['**/*.js', '**/*.cjs'],
-    extends: nodejs,
-
-    languageOptions: {
-      sourceType: 'script',
-    },
-  },
-
-  {
-    files: ['**/*.test.ts', '**/*.test.js'],
-    extends: [vitest, nodejs],
-  },
-]);
-
-export default config;
+  prettier,
+);
