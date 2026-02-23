@@ -37,6 +37,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTodoStore } from '../stores/todoStore';
+import { MarkdownText } from '../components/MarkdownText';
 
 interface SortableTodoItemProps {
   id: string;
@@ -89,13 +90,12 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
           />
         </div>
         <Checkbox id={text} isSelected={completed} onChange={onToggle} />
-        <Text
+        <MarkdownText
+          text={text}
           variant={TextVariant.BodyMd}
           color={completed ? TextColor.TextAlternative : TextColor.TextDefault}
           className={completed ? 'line-through' : ''}
-        >
-          {text}
-        </Text>
+        />
       </Box>
       <ButtonIcon
         iconName={IconName.Trash}

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { getTodayISO, getYesterdayISO, getDisplayDate } from '../utils/dates';
 import { logError } from '../utils/errors';
+import { parseGitHubUrl } from '../utils/urlParser';
 
 interface Todo {
   id: string;
@@ -33,9 +34,12 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   getIncomplete: () => get().todos.filter(todo => !todo.completed),
 
   addTodo: (text) => {
+    // Parse GitHub URLs and convert to markdown links
+    const processedText = parseGitHubUrl(text);
+
     const newTodo: Todo = {
       id: crypto.randomUUID(),
-      text,
+      text: processedText,
       completed: false,
       createdAt: new Date().toISOString(),
     };
