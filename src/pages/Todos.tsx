@@ -6,6 +6,8 @@ import {
   BoxBackgroundColor,
   BoxJustifyContent,
   Button,
+  ButtonIcon,
+  ButtonIconSize,
   ButtonSize,
   ButtonVariant,
   Checkbox,
@@ -41,9 +43,16 @@ interface SortableTodoItemProps {
   text: string;
   completed: boolean;
   onToggle: () => void;
+  onDelete: () => void;
 }
 
-const SortableTodoItem: React.FC<SortableTodoItemProps> = ({ id, text, completed, onToggle }) => {
+const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
+  id,
+  text,
+  completed,
+  onToggle,
+  onDelete,
+}) => {
   const {
     attributes,
     listeners,
@@ -67,11 +76,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({ id, text, completed
       backgroundColor={BoxBackgroundColor.BackgroundDefault}
       className="flex items-center justify-between group hover:bg-default-hover transition-colors first:rounded-t-lg last:rounded-b-lg"
     >
-      <Box
-        alignItems={BoxAlignItems.Center}
-        gap={3}
-        className="flex flex-1"
-      >
+      <Box alignItems={BoxAlignItems.Center} gap={3} className="flex flex-1">
         <div
           {...attributes}
           {...listeners}
@@ -83,23 +88,21 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({ id, text, completed
             className="text-text-alternative"
           />
         </div>
-        <Checkbox
-          id={text}
-          isSelected={completed}
-          onChange={onToggle}
-        />
+        <Checkbox id={text} isSelected={completed} onChange={onToggle} />
         <Text
           variant={TextVariant.BodyMd}
-          color={
-            completed
-              ? TextColor.TextAlternative
-              : TextColor.TextDefault
-          }
+          color={completed ? TextColor.TextAlternative : TextColor.TextDefault}
           className={completed ? 'line-through' : ''}
         >
           {text}
         </Text>
       </Box>
+      <ButtonIcon
+        iconName={IconName.Trash}
+        ariaLabel="Delete todo"
+        onClick={onDelete}
+        className="opacity-0 group-hover:opacity-100 transition-opacity"
+      />
     </Box>
   );
 };
@@ -111,7 +114,9 @@ const Todos: React.FC = () => {
   const deleteTodo = useTodoStore((state) => state.deleteTodo);
   const reorderTodos = useTodoStore((state) => state.reorderTodos);
   const loadTodos = useTodoStore((state) => state.loadTodos);
-  const generateStandupMarkdown = useTodoStore((state) => state.generateStandupMarkdown);
+  const generateStandupMarkdown = useTodoStore(
+    (state) => state.generateStandupMarkdown,
+  );
   const saveStandupToFile = useTodoStore((state) => state.saveStandupToFile);
   const [newTodoText, setNewTodoText] = useState('');
   const [standupMarkdown, setStandupMarkdown] = useState('');
@@ -121,7 +126,7 @@ const Todos: React.FC = () => {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   useEffect(() => {
@@ -167,7 +172,10 @@ const Todos: React.FC = () => {
   return (
     <Box padding={6} className="w-full mx-auto">
       {/* Header */}
-      <Box marginBottom={6} className="flex items-center justify-between max-w-6xl mx-auto">
+      <Box
+        marginBottom={6}
+        className="flex items-center justify-between max-w-6xl mx-auto"
+      >
         <Box className="flex items-center" gap={4}>
           <Text
             variant={TextVariant.HeadingLg}
@@ -271,7 +279,7 @@ const Todos: React.FC = () => {
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
-                  items={todos.map(todo => todo.id)}
+                  items={todos.map((todo) => todo.id)}
                   strategy={verticalListSortingStrategy}
                 >
                   <Box className="flex flex-col">
@@ -282,6 +290,7 @@ const Todos: React.FC = () => {
                         text={todo.text}
                         completed={todo.completed}
                         onToggle={() => toggleTodo(todo.id)}
+                        onDelete={() => deleteTodo(todo.id)}
                       />
                     ))}
                   </Box>
