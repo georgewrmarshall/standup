@@ -11,11 +11,11 @@
     "url": "https://github.com/georgemarshall/standup.git"
   },
   "scripts": {
-    "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
+    "dev": "vite",
     "lint": "eslint . && prettier --check '**/*.{json,md,yml}' --ignore-path .gitignore",
     "lint:fix": "eslint . --fix && prettier --write '**/*.{json,md,yml}' --ignore-path .gitignore",
+    "preview": "vite preview",
     "test": "vitest",
     "test:watch": "vitest --watch"
   },
@@ -45,14 +45,14 @@
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/coverage-istanbul": "^3.0.7",
     "autoprefixer": "^10.4.17",
-    "eslint": "^9.11.0",
+    "eslint": "^10.0.0",
     "eslint-config-prettier": "^9.1.0",
     "postcss": "^8.4.35",
     "prettier": "^3.3.3",
     "prettier-plugin-packagejson": "^2.5.8",
     "tailwindcss": "^3.4.1",
     "typescript": "~5.7.3",
-    "typescript-eslint": "^8.48.1",
+    "typescript-eslint": "^8.56.0",
     "vite": "^6.4.1",
     "vitest": "^3.0.7"
   },

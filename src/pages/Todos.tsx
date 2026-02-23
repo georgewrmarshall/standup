@@ -7,7 +7,6 @@ import {
   BoxJustifyContent,
   Button,
   ButtonIcon,
-  ButtonIconSize,
   ButtonSize,
   ButtonVariant,
   Checkbox,
@@ -29,7 +28,6 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
@@ -131,7 +129,7 @@ const Todos: React.FC = () => {
 
   useEffect(() => {
     loadTodos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only run once on mount
   }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {

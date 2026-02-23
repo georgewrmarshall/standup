@@ -64,13 +64,17 @@ standup/
 This app works best with the following MCP servers:
 
 ### GitHub MCP
+
 Tracks PRs across these repositories:
+
 - MetaMask/metamask-design-system
 - MetaMask/metamask-extension
 - MetaMask/metamask-mobile
 
 ### Atlassian MCP
+
 Connects to Consensys Software Jira:
+
 - Project: DSYS
 - Board: https://consensyssoftware.atlassian.net/jira/software/c/projects/DSYS
 
@@ -79,16 +83,19 @@ Connects to Consensys Software Jira:
 ### Daily Workflow
 
 1. **Morning Setup**
+
    - Open the Todos page and review yesterday's items
    - Mark completed tasks
    - Add new todos for today
 
 2. **Check PR Status**
+
    - Navigate to Pull Requests page
    - Review open PRs and their review status
    - Address any changes requested
 
 3. **Update Jira Board**
+
    - Go to Jira Board page
    - Move tickets through workflow states
    - Check sprint progress
