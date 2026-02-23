@@ -14,6 +14,7 @@ interface TodoStore {
   addTodo: (text: string) => void;
   toggleTodo: (id: string) => void;
   deleteTodo: (id: string) => void;
+  reorderTodos: (activeId: string, overId: string) => void;
   generateStandupMarkdown: () => string;
   saveStandupToFile: (markdown: string) => void;
   loadTodos: () => void;
@@ -72,6 +73,20 @@ export const useTodoStore = (): TodoStore => {
       todos = todos.filter(todo => todo.id !== id);
       notify();
       saveTodosToStorage();
+    },
+
+    reorderTodos: (activeId, overId) => {
+      const oldIndex = todos.findIndex(todo => todo.id === activeId);
+      const newIndex = todos.findIndex(todo => todo.id === overId);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newTodos = [...todos];
+        const [removed] = newTodos.splice(oldIndex, 1);
+        newTodos.splice(newIndex, 0, removed);
+        todos = newTodos;
+        notify();
+        saveTodosToStorage();
+      }
     },
 
     generateStandupMarkdown: () => {

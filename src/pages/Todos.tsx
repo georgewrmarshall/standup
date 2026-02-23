@@ -17,6 +17,23 @@ import {
   TextColor,
   TextVariant,
 } from '@metamask/design-system-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useTodoStore } from '../stores/todoStore';
 
 const yesterdayStandup = `_February 20, 2026_
@@ -49,17 +66,100 @@ const yesterdayStandup = `_February 20, 2026_
 
 - More storybook clean up`;
 
+interface SortableTodoItemProps {
+  id: string;
+  text: string;
+  completed: boolean;
+  onToggle: () => void;
+}
+
+const SortableTodoItem: React.FC<SortableTodoItemProps> = ({ id, text, completed, onToggle }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Box
+      ref={setNodeRef}
+      style={style}
+      padding={3}
+      backgroundColor={BoxBackgroundColor.BackgroundDefault}
+      className="flex items-center justify-between group hover:bg-default-hover transition-colors first:rounded-t-lg last:rounded-b-lg"
+    >
+      <Box
+        alignItems={BoxAlignItems.Center}
+        gap={3}
+        className="flex flex-1"
+      >
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing touch-none"
+        >
+          <Icon
+            name={IconName.Menu}
+            size={IconSize.Md}
+            className="text-text-alternative"
+          />
+        </div>
+        <Checkbox
+          id={text}
+          isSelected={completed}
+          onChange={onToggle}
+        />
+        <Text
+          variant={TextVariant.BodyMd}
+          color={
+            completed
+              ? TextColor.TextAlternative
+              : TextColor.TextDefault
+          }
+          className={completed ? 'line-through' : ''}
+        >
+          {text}
+        </Text>
+      </Box>
+    </Box>
+  );
+};
+
 const Todos: React.FC = () => {
-  const { todos, addTodo, toggleTodo, deleteTodo, loadTodos, generateStandupMarkdown, saveStandupToFile } =
+  const { todos, addTodo, toggleTodo, deleteTodo, reorderTodos, loadTodos, generateStandupMarkdown, saveStandupToFile } =
     useTodoStore();
   const [newTodoText, setNewTodoText] = useState('');
   const [standupMarkdown, setStandupMarkdown] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   useEffect(() => {
     loadTodos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      reorderTodos(active.id as string, over.id as string);
+    }
+  };
 
   const handleAddTodo = () => {
     if (newTodoText.trim()) {
@@ -189,39 +289,28 @@ const Todos: React.FC = () => {
                 </Text>
               </Box>
             ) : (
-              <Box className="flex flex-col">
-                {todos.map((todo) => (
-                  <Box
-                    key={todo.id}
-                    padding={3}
-                    backgroundColor={BoxBackgroundColor.BackgroundDefault}
-                    className="flex items-center justify-between group hover:bg-default-hover transition-colors first:rounded-t-lg last:rounded-b-lg"
-                  >
-                    <Box
-                      alignItems={BoxAlignItems.Center}
-                      gap={3}
-                      className="flex flex-1"
-                    >
-                      <Checkbox
-                        id={todo.text}
-                        isSelected={todo.completed}
-                        onChange={() => toggleTodo(todo.id)}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={todos.map(todo => todo.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <Box className="flex flex-col">
+                    {todos.map((todo) => (
+                      <SortableTodoItem
+                        key={todo.id}
+                        id={todo.id}
+                        text={todo.text}
+                        completed={todo.completed}
+                        onToggle={() => toggleTodo(todo.id)}
                       />
-                      <Text
-                        variant={TextVariant.BodyMd}
-                        color={
-                          todo.completed
-                            ? TextColor.TextAlternative
-                            : TextColor.TextDefault
-                        }
-                        className={todo.completed ? 'line-through' : ''}
-                      >
-                        {todo.text}
-                      </Text>
-                    </Box>
+                    ))}
                   </Box>
-                ))}
-              </Box>
+                </SortableContext>
+              </DndContext>
             )}
           </Box>
         </Box>
