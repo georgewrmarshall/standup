@@ -1,19 +1,38 @@
-<!--
-Thanks for your contribution! Take a moment to answer these questions so that reviewers have the information they need to properly understand your changes:
+## Description
 
-* What is the current state of things and why does it need to change?
-* What is the solution your changes offer and how does it work?
+<!-- Provide a clear and concise description of your changes -->
 
-Are there any issues or other links reviewers should consult to understand this pull request better? For instance:
+## What changed?
 
-* Fixes #12345
-* See: #67890
--->
+<!-- List the main changes in this PR -->
 
-## Examples
+-
 
-<!--
-Are there any examples of this change being used in another repository?
+## Why?
 
-When considering changes to the MetaMask module template, it's strongly preferred that the change be experimented with in another repository first. This gives reviewers a better sense of how the change works, making it less likely the change will need to be reverted or adjusted later.
--->
+<!-- Explain the motivation for these changes -->
+
+## Related Issues
+
+<!-- Link any related issues or tickets -->
+
+<!-- Fixes #123 -->
+<!-- Relates to DSYS-456 -->
+
+## Testing
+
+<!-- Describe how you tested these changes -->
+
+- [ ] Tests pass locally
+- [ ] Linting passes
+- [ ] Tested in browser manually
+
+## Screenshots
+
+<!-- If applicable, add screenshots to help explain your changes -->
+
+## Checklist
+
+- [ ] Code follows project style guidelines
+- [ ] Documentation updated if needed
+- [ ] No new warnings or errors introduced
