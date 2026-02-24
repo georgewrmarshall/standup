@@ -42,6 +42,7 @@ interface SortableTodoItemProps {
   text: string;
   completed: boolean;
   onToggle: () => void;
+  onUpdate: (text: string) => void;
   onDelete: () => void;
 }
 
@@ -50,8 +51,13 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
   text,
   completed,
   onToggle,
+  onUpdate,
   onDelete,
 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(text);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
   const {
     attributes,
     listeners,
@@ -65,6 +71,40 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+  };
+
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    const trimmedText = editText.trim();
+    if (trimmedText && trimmedText !== text) {
+      onUpdate(trimmedText);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditText(text);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      handleCancel();
+    }
+  };
+
+  const handleTextClick = () => {
+    if (!completed) {
+      setIsEditing(true);
+    }
   };
 
   return (
@@ -88,12 +128,28 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
           />
         </div>
         <Checkbox id={text} isSelected={completed} onChange={onToggle} />
-        <MarkdownText
-          text={text}
-          variant={TextVariant.BodyMd}
-          color={completed ? TextColor.TextAlternative : TextColor.TextDefault}
-          className={completed ? 'line-through' : ''}
-        />
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleSave}
+            className="flex-1 px-2 py-1 border border-primary rounded-md bg-default text-default"
+          />
+        ) : (
+          <div onClick={handleTextClick} className="flex-1 cursor-pointer">
+            <MarkdownText
+              text={text}
+              variant={TextVariant.BodyMd}
+              color={
+                completed ? TextColor.TextAlternative : TextColor.TextDefault
+              }
+              className={completed ? 'line-through' : ''}
+            />
+          </div>
+        )}
       </Box>
       <ButtonIcon
         iconName={IconName.Trash}
@@ -109,6 +165,7 @@ const Todos: React.FC = () => {
   const todos = useTodoStore((state) => state.todos);
   const addTodo = useTodoStore((state) => state.addTodo);
   const toggleTodo = useTodoStore((state) => state.toggleTodo);
+  const updateTodo = useTodoStore((state) => state.updateTodo);
   const deleteTodo = useTodoStore((state) => state.deleteTodo);
   const reorderTodos = useTodoStore((state) => state.reorderTodos);
   const loadTodos = useTodoStore((state) => state.loadTodos);
@@ -288,6 +345,7 @@ const Todos: React.FC = () => {
                         text={todo.text}
                         completed={todo.completed}
                         onToggle={() => toggleTodo(todo.id)}
+                        onUpdate={(text) => updateTodo(todo.id, text)}
                         onDelete={() => deleteTodo(todo.id)}
                       />
                     ))}

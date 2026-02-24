@@ -15,6 +15,7 @@ interface TodoStore {
   todos: Todo[];
   addTodo: (text: string) => void;
   toggleTodo: (id: string) => void;
+  updateTodo: (id: string, text: string) => void;
   deleteTodo: (id: string) => void;
   reorderTodos: (activeId: string, overId: string) => void;
   generateStandupMarkdown: () => string;
@@ -67,6 +68,18 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
 
     set({ todos: sorted });
     saveTodosToStorage(sorted);
+  },
+
+  updateTodo: (id, text) => {
+    // Parse GitHub URLs and convert to markdown links
+    const processedText = parseGitHubUrl(text);
+
+    set((state) => ({
+      todos: state.todos.map(todo =>
+        todo.id === id ? { ...todo, text: processedText } : todo
+      ),
+    }));
+    saveTodosToStorage(get().todos);
   },
 
   deleteTodo: (id) => {
