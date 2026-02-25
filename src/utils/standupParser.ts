@@ -103,8 +103,8 @@ function extractTasksWithStatus(lines: string[]): TaskWithStatus[] {
     // Remove any remaining emoji indicators at the start
     task = task.replace(/^[✅❌]\s*/, '').trim();
 
-    // Remove markdown links but keep the text
-    task = task.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    // Keep markdown links as-is so they render properly
+    // No need to strip them - they'll be rendered by the MarkdownText component
 
     if (task) {
       tasks.push({ text: task, completed });
@@ -132,8 +132,8 @@ function extractSimpleTasks(lines: string[]): string[] {
     // Remove any emoji indicators
     task = task.replace(/^[✅❌]\s*/, '').trim();
 
-    // Remove markdown links but keep the text
-    task = task.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    // Keep markdown links as-is so they render properly
+    // No need to strip them - they'll be rendered by the MarkdownText component
 
     if (task) {
       tasks.push(task);
