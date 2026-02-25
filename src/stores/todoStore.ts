@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { getTodayISO, getYesterdayISO, getDisplayDate } from '../utils/dates';
 import { logError } from '../utils/errors';
 import { parseGitHubUrl } from '../utils/urlParser';
+import { fetchLatestStandup, parseStandupFile, type ParsedStandup } from '../utils/standupParser';
 
 interface Todo {
   id: string;
@@ -22,6 +23,7 @@ interface TodoStore {
   saveStandupToFile: (markdown: string) => void;
   loadTodos: () => void;
   saveTodos: () => void;
+  importFromStandup: (selectedSections: Array<keyof ParsedStandup>) => Promise<void>;
   // Selectors
   getCompleted: () => Todo[];
   getIncomplete: () => Todo[];
@@ -190,6 +192,60 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
 
   saveTodos: () => {
     saveTodosToStorage(get().todos);
+  },
+
+  importFromStandup: async (selectedSections) => {
+    try {
+      // Fetch the latest standup file
+      const standupData = await fetchLatestStandup();
+      if (!standupData) {
+        throw new Error('No standup file found');
+      }
+
+      // Parse the standup file
+      const parsed = parseStandupFile(standupData.content);
+
+      // Collect tasks from selected sections
+      const importedTasks: string[] = [];
+      for (const section of selectedSections) {
+        importedTasks.push(...parsed[section]);
+      }
+
+      if (importedTasks.length === 0) {
+        return; // Nothing to import
+      }
+
+      // Get existing todos
+      const existingTodos = get().todos;
+      const existingTexts = new Set(
+        existingTodos.map(todo => todo.text.toLowerCase().trim())
+      );
+
+      // Filter out duplicates and create new Todo objects
+      const newTodos: Todo[] = importedTasks
+        .filter(task => !existingTexts.has(task.toLowerCase().trim()))
+        .map(task => ({
+          id: crypto.randomUUID(),
+          text: task,
+          completed: false,
+          createdAt: new Date().toISOString(),
+        }));
+
+      if (newTodos.length === 0) {
+        return; // All tasks were duplicates
+      }
+
+      // Merge: add new todos at the end of incomplete items
+      const incomplete = existingTodos.filter(todo => !todo.completed);
+      const completed = existingTodos.filter(todo => todo.completed);
+      const merged = [...incomplete, ...newTodos, ...completed];
+
+      set({ todos: merged });
+      saveTodosToStorage(merged);
+    } catch (error) {
+      logError('importFromStandup: Failed to import from standup', error);
+      throw error;
+    }
   },
 }));
 

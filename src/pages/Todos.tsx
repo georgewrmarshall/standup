@@ -6,6 +6,7 @@ import {
   BoxBackgroundColor,
   BoxJustifyContent,
   Button,
+  ButtonHero,
   ButtonIcon,
   ButtonSize,
   ButtonVariant,
@@ -36,6 +37,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useTodoStore } from '../stores/todoStore';
 import { MarkdownText } from '../components/MarkdownText';
+import { ImportFromStandupDialog } from '../components/ImportFromStandupDialog';
 
 interface SortableTodoItemProps {
   id: string;
@@ -176,6 +178,7 @@ const Todos: React.FC = () => {
   const [newTodoText, setNewTodoText] = useState('');
   const [standupMarkdown, setStandupMarkdown] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -222,6 +225,11 @@ const Todos: React.FC = () => {
       saveStandupToFile(standupMarkdown);
       setStandupMarkdown(''); // Clear preview after saving
     }
+  };
+
+  const handleImport = async (tasks: string[]) => {
+    // Add tasks directly to the todo list
+    tasks.forEach(task => addTodo(task));
   };
 
   return (
@@ -360,14 +368,22 @@ const Todos: React.FC = () => {
         <Box className="flex flex-col" gap={6}>
           {/* Actions */}
           <Box gap={2} className="flex flex-col sm:flex-row">
-            <Button
-              variant={ButtonVariant.Secondary}
+            <ButtonHero
               size={ButtonSize.Lg}
               onClick={handleGenerateStandup}
               isLoading={isGenerating}
               className="w-full sm:flex-1"
             >
               {isGenerating ? 'Generating...' : 'Generate Standup'}
+            </ButtonHero>
+            <Button
+              variant={ButtonVariant.Secondary}
+              size={ButtonSize.Lg}
+              startIconName={IconName.Upload}
+              onClick={() => setIsImportDialogOpen(true)}
+              className="w-full sm:w-auto"
+            >
+              Load standup
             </Button>
             <Button
               variant={ButtonVariant.Primary}
@@ -409,6 +425,13 @@ const Todos: React.FC = () => {
           </Box>
         </Box>
       </Box>
+
+      {/* Import Dialog */}
+      <ImportFromStandupDialog
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImport={handleImport}
+      />
     </Box>
   );
 };
