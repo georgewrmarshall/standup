@@ -171,6 +171,7 @@ const Todos: React.FC = () => {
   const deleteTodo = useTodoStore((state) => state.deleteTodo);
   const reorderTodos = useTodoStore((state) => state.reorderTodos);
   const loadTodos = useTodoStore((state) => state.loadTodos);
+  const reloadFromMarkdown = useTodoStore((state) => state.reloadFromMarkdown);
   const generateStandupMarkdown = useTodoStore(
     (state) => state.generateStandupMarkdown,
   );
@@ -179,6 +180,7 @@ const Todos: React.FC = () => {
   const [standupMarkdown, setStandupMarkdown] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [showSaveInstructions, setShowSaveInstructions] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -223,8 +225,15 @@ const Todos: React.FC = () => {
   const handleSaveStandup = () => {
     if (standupMarkdown) {
       saveStandupToFile(standupMarkdown);
-      setStandupMarkdown(''); // Clear preview after saving
+      setShowSaveInstructions(true);
+      // Keep the preview visible so user can reference it
     }
+  };
+
+  const handleReload = () => {
+    reloadFromMarkdown();
+    setShowSaveInstructions(false);
+    setStandupMarkdown(''); // Clear preview after reload
   };
 
   const handleImport = async (tasks: string[]) => {
@@ -284,7 +293,43 @@ const Todos: React.FC = () => {
             </Box>
           )}
         </Box>
+        <Button
+          variant={ButtonVariant.Secondary}
+          startIconName={IconName.Refresh}
+          onClick={handleReload}
+        >
+          Reload from Markdown
+        </Button>
       </Box>
+
+      {/* Save Instructions Banner */}
+      {showSaveInstructions && (
+        <Box
+          marginBottom={4}
+          padding={4}
+          backgroundColor={BoxBackgroundColor.InfoMuted}
+          borderColor={BoxBorderColor.InfoDefault}
+          borderWidth={1}
+          className="rounded-lg max-w-6xl mx-auto"
+        >
+          <Box className="flex items-start justify-between">
+            <Box gap={2} className="flex-1">
+              <Text variant={TextVariant.BodyMd} color={TextColor.InfoDefault} className="font-bold">
+                File Downloaded!
+              </Text>
+              <Text variant={TextVariant.BodyMd} color={TextColor.TextDefault}>
+                Save the downloaded file to <code className="px-1 py-0.5 bg-default rounded text-sm">public/standups/</code> directory,
+                then click "Reload from Markdown" to sync.
+              </Text>
+            </Box>
+            <ButtonIcon
+              iconName={IconName.Close}
+              ariaLabel="Close"
+              onClick={() => setShowSaveInstructions(false)}
+            />
+          </Box>
+        </Box>
+      )}
 
       {/* Split Screen Layout */}
       <Box className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">

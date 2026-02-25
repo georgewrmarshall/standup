@@ -22,6 +22,7 @@ interface TodoStore {
   generateStandupMarkdown: () => string;
   saveStandupToFile: (markdown: string) => void;
   loadTodos: () => void;
+  reloadFromMarkdown: () => void;
   saveTodos: () => void;
   importFromStandup: (selectedSections: Array<keyof ParsedStandup>) => Promise<void>;
   // Selectors
@@ -104,9 +105,11 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     if (oldIndex !== -1 && newIndex !== -1) {
       const newTodos = [...todos];
       const [removed] = newTodos.splice(oldIndex, 1);
-      newTodos.splice(newIndex, 0, removed);
-      set({ todos: newTodos });
-      saveTodosToStorage(newTodos);
+      if (removed) {
+        newTodos.splice(newIndex, 0, removed);
+        set({ todos: newTodos });
+        saveTodosToStorage(newTodos);
+      }
     }
   },
 
@@ -168,26 +171,19 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     a.click();
     URL.revokeObjectURL(url);
 
-    // Remove completed todos, keep incomplete for today
-    const notCompleted = get().todos.filter(todo => !todo.completed);
-    set({ todos: notCompleted });
-    saveTodosToStorage(notCompleted);
+    // Note: The user needs to save the file to public/standups/ directory
+    // After they save it, they should reload the page to sync with the markdown file
+    // We'll keep the current todos state until they reload
   },
 
   loadTodos: () => {
-    const stored = localStorage.getItem('standup-todos');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        set({ todos: parsed });
-      } catch (error) {
-        logError('loadTodos: Failed to parse localStorage data', error);
-        set({ todos: [] });
-      }
-    } else {
-      // If no stored todos, try to load from latest standup markdown
-      loadTodosFromLatestStandup(set);
-    }
+    // Always load from the latest standup markdown file (markdown is source of truth)
+    loadTodosFromLatestStandup(set);
+  },
+
+  reloadFromMarkdown: () => {
+    // Force reload from markdown files
+    loadTodosFromLatestStandup(set);
   },
 
   saveTodos: () => {
@@ -206,9 +202,24 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       const parsed = parseStandupFile(standupData.content);
 
       // Collect tasks from selected sections
-      const importedTasks: string[] = [];
+      const importedTasks: { text: string; completed: boolean }[] = [];
       for (const section of selectedSections) {
-        importedTasks.push(...parsed[section]);
+        const sectionData = parsed[section];
+
+        // Handle TaskWithStatus[] for yesterday/today or string[] for blockers/backlog
+        if (Array.isArray(sectionData)) {
+          if (sectionData.length > 0) {
+            if (typeof sectionData[0] === 'string') {
+              // blockers or backlog (string[])
+              (sectionData as string[]).forEach(text => {
+                importedTasks.push({ text, completed: false });
+              });
+            } else {
+              // yesterday or today (TaskWithStatus[])
+              importedTasks.push(...(sectionData as Array<{ text: string; completed: boolean }>));
+            }
+          }
+        }
       }
 
       if (importedTasks.length === 0) {
@@ -221,24 +232,29 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
         existingTodos.map(todo => todo.text.toLowerCase().trim())
       );
 
-      // Filter out duplicates and create new Todo objects
+      // Filter out duplicates and create new Todo objects with their completion status
       const newTodos: Todo[] = importedTasks
-        .filter(task => !existingTexts.has(task.toLowerCase().trim()))
+        .filter(task => !existingTexts.has(task.text.toLowerCase().trim()))
         .map(task => ({
           id: crypto.randomUUID(),
-          text: task,
-          completed: false,
+          text: task.text,
+          completed: task.completed,
           createdAt: new Date().toISOString(),
+          ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
         }));
 
       if (newTodos.length === 0) {
         return; // All tasks were duplicates
       }
 
-      // Merge: add new todos at the end of incomplete items
-      const incomplete = existingTodos.filter(todo => !todo.completed);
-      const completed = existingTodos.filter(todo => todo.completed);
-      const merged = [...incomplete, ...newTodos, ...completed];
+      // Merge: separate incomplete and completed
+      const existingIncomplete = existingTodos.filter(todo => !todo.completed);
+      const existingCompleted = existingTodos.filter(todo => todo.completed);
+      const newIncomplete = newTodos.filter(todo => !todo.completed);
+      const newCompleted = newTodos.filter(todo => todo.completed);
+
+      // Combine: incomplete first, then completed
+      const merged = [...existingIncomplete, ...newIncomplete, ...existingCompleted, ...newCompleted];
 
       set({ todos: merged });
       saveTodosToStorage(merged);
@@ -255,46 +271,53 @@ const saveTodosToStorage = (todos: Todo[]) => {
 
 const loadTodosFromLatestStandup = async (set: (partial: Partial<TodoStore>) => void) => {
   try {
-    // Try to fetch the latest standup file
-    // Get today's date and yesterday's date
-    const today = getTodayISO();
-    const yesterday = getYesterdayISO();
+    // Fetch the latest standup file using the parser utility
+    const standupData = await fetchLatestStandup();
 
-    // Try to load today's standup first, then yesterday's
-    for (const date of [today, yesterday]) {
-      try {
-        const response = await fetch(`${import.meta.env.BASE_URL}standups/${date}.md`);
-        if (response.ok) {
-          const markdown = await response.text();
-
-          // Parse the "Today" section
-          const todayMatch = markdown.match(/Today\n\n([\s\S]*?)(?=\n\n[A-Z]|$)/);
-          if (todayMatch) {
-            const todayTasks = todayMatch[1]
-              .split('\n')
-              .filter(line => line.trim().startsWith('-'))
-              .map(line => line.replace(/^-\s*/, '').trim());
-
-            // Convert to todos
-            const todos: Todo[] = todayTasks.map((text) => ({
-              id: crypto.randomUUID(),
-              text,
-              completed: false,
-              createdAt: new Date().toISOString(),
-            }));
-
-            set({ todos });
-            saveTodosToStorage(todos);
-            return;
-          }
-        }
-      } catch (error) {
-        // Continue to next date - individual fetch failures are expected
-        logError(`loadTodosFromLatestStandup: Failed to fetch/parse standup for ${date}`, error);
-        continue;
-      }
+    if (!standupData) {
+      // No standup file found, start with empty todos
+      set({ todos: [] });
+      return;
     }
+
+    // Parse the standup file with the new parser
+    const parsed = parseStandupFile(standupData.content);
+
+    // Combine yesterday and today tasks with their completion status
+    const todos: Todo[] = [];
+
+    // Add yesterday's tasks
+    parsed.yesterday.forEach(task => {
+      todos.push({
+        id: crypto.randomUUID(),
+        text: task.text,
+        completed: task.completed,
+        createdAt: new Date().toISOString(),
+        ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+      });
+    });
+
+    // Add today's tasks
+    parsed.today.forEach(task => {
+      todos.push({
+        id: crypto.randomUUID(),
+        text: task.text,
+        completed: task.completed,
+        createdAt: new Date().toISOString(),
+        ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+      });
+    });
+
+    // Sort: incomplete first, then completed
+    const sorted = [
+      ...todos.filter(todo => !todo.completed),
+      ...todos.filter(todo => todo.completed),
+    ];
+
+    set({ todos: sorted });
+    saveTodosToStorage(sorted);
   } catch (error) {
-    logError('loadTodosFromLatestStandup: Unexpected error loading from standup files', error);
+    logError('loadTodosFromLatestStandup: Failed to load from standup files', error);
+    set({ todos: [] });
   }
 };

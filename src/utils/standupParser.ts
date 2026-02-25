@@ -1,6 +1,11 @@
+export interface TaskWithStatus {
+  text: string;
+  completed: boolean;
+}
+
 export interface ParsedStandup {
-  yesterday: string[];
-  today: string[];
+  yesterday: TaskWithStatus[];
+  today: TaskWithStatus[];
   blockers: string[];
   backlog: string[];
 }
@@ -8,6 +13,7 @@ export interface ParsedStandup {
 export interface StandupTask {
   id: string;
   text: string;
+  completed: boolean;
   source: 'yesterday' | 'today';
 }
 
@@ -61,20 +67,57 @@ export function parseStandupFile(markdown: string): ParsedStandup {
   }
 
   // Extract tasks from each section
-  for (const key of Object.keys(sectionLines) as Array<keyof ParsedStandup>) {
-    result[key] = extractTasksFromSection(sectionLines[key], key);
-  }
+  result.yesterday = extractTasksWithStatus(sectionLines.yesterday);
+  result.today = extractTasksWithStatus(sectionLines.today);
+  result.blockers = extractSimpleTasks(sectionLines.blockers);
+  result.backlog = extractSimpleTasks(sectionLines.backlog);
 
   return result;
 }
 
 /**
- * Extract tasks from a section's lines
+ * Extract tasks with completion status from yesterday/today sections
  */
-function extractTasksFromSection(
-  lines: string[],
-  sectionKey: keyof ParsedStandup
-): string[] {
+function extractTasksWithStatus(lines: string[]): TaskWithStatus[] {
+  const tasks: TaskWithStatus[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Skip empty lines or non-list items
+    if (!trimmed || !trimmed.match(/^[-*•]/)) continue;
+
+    // Remove list marker
+    let task = trimmed.replace(/^[-*•]\s*/, '');
+
+    // Check for completion status indicators
+    let completed = false;
+    if (task.includes('✅')) {
+      completed = true;
+      task = task.replace(/✅\s*/, '').trim();
+    } else if (task.includes('❌')) {
+      completed = false;
+      task = task.replace(/❌\s*/, '').trim();
+    }
+
+    // Remove any remaining emoji indicators at the start
+    task = task.replace(/^[✅❌]\s*/, '').trim();
+
+    // Remove markdown links but keep the text
+    task = task.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+    if (task) {
+      tasks.push({ text: task, completed });
+    }
+  }
+
+  return tasks;
+}
+
+/**
+ * Extract simple tasks (without completion status) for blockers/backlog
+ */
+function extractSimpleTasks(lines: string[]): string[] {
   const tasks: string[] = [];
 
   for (const line of lines) {
@@ -86,18 +129,7 @@ function extractTasksFromSection(
     // Remove list marker
     let task = trimmed.replace(/^[-*•]\s*/, '');
 
-    // For "yesterday" section, only include incomplete items (with ❌)
-    if (sectionKey === 'yesterday') {
-      if (task.includes('❌')) {
-        // Remove the ❌ indicator
-        task = task.replace(/❌\s*/, '').trim();
-      } else {
-        // Skip completed items (with ✅) or items without indicators
-        continue;
-      }
-    }
-
-    // Remove any remaining emoji indicators at the start
+    // Remove any emoji indicators
     task = task.replace(/^[✅❌]\s*/, '').trim();
 
     // Remove markdown links but keep the text
@@ -112,25 +144,27 @@ function extractTasksFromSection(
 }
 
 /**
- * Get all tasks from yesterday (incomplete) and today as selectable items
+ * Get all tasks from yesterday and today as selectable items with completion status
  */
 export function getStandupTasks(parsed: ParsedStandup): StandupTask[] {
   const tasks: StandupTask[] = [];
 
-  // Add incomplete tasks from yesterday
-  parsed.yesterday.forEach((text, index) => {
+  // Add all tasks from yesterday with their completion status
+  parsed.yesterday.forEach((task, index) => {
     tasks.push({
       id: `yesterday-${index}`,
-      text,
+      text: task.text,
+      completed: task.completed,
       source: 'yesterday',
     });
   });
 
-  // Add all tasks from today
-  parsed.today.forEach((text, index) => {
+  // Add all tasks from today with their completion status
+  parsed.today.forEach((task, index) => {
     tasks.push({
       id: `today-${index}`,
-      text,
+      text: task.text,
+      completed: task.completed,
       source: 'today',
     });
   });
