@@ -931,9 +931,9 @@ __metadata:
   linkType: hard
 
 "@metamask/design-tokens@npm:latest":
-  version: 8.1.1
-  resolution: "@metamask/design-tokens@npm:8.1.1"
-  checksum: 10c0/95978f6d69548f362b6279781574ab66dfaa7e1e990adabd0fa2de8062a6a754c736d2731aded0e22257e10a92913e452187428e2b2510cb823d7f9e9aff84a9
+  version: 8.2.0
+  resolution: "@metamask/design-tokens@npm:8.2.0"
+  checksum: 10c0/00564725c2b609471087db8f1d46a3ed3b48a8394163acafb4d9c347da1323d03d2ea7d8fa85bd669cf8eb507aa0a5ffae956d9a97703b06550f8543da4a8b00
   languageName: node
   linkType: hard
 
