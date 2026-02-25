@@ -44,8 +44,15 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       completed: false,
       createdAt: new Date().toISOString(),
     };
-    set((state) => ({ todos: [...state.todos, newTodo] }));
-    saveTodosToStorage(get().todos);
+
+    // Insert at the end of incomplete items (before completed items)
+    const currentTodos = get().todos;
+    const incomplete = currentTodos.filter(todo => !todo.completed);
+    const completed = currentTodos.filter(todo => todo.completed);
+    const updatedTodos = [...incomplete, newTodo, ...completed];
+
+    set({ todos: updatedTodos });
+    saveTodosToStorage(updatedTodos);
   },
 
   toggleTodo: (id) => {
