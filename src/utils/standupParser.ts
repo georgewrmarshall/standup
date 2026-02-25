@@ -192,7 +192,7 @@ export async function fetchLatestStandup(): Promise<{
   // Try today's file first, then yesterday's
   for (const filename of filenames) {
     try {
-      const response = await fetch(`/standups/${filename}.md`);
+      const response = await fetch(`${import.meta.env.BASE_URL}standups/${filename}.md`);
       if (response.ok) {
         const content = await response.text();
         return { content, filename: `${filename}.md` };
