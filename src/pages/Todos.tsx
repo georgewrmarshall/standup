@@ -37,7 +37,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useTodoStore } from '../stores/todoStore';
 import { MarkdownText } from '../components/MarkdownText';
-import { ImportFromStandupDialog } from '../components/ImportFromStandupDialog';
 
 interface SortableTodoItemProps {
   id: string;
@@ -180,7 +179,6 @@ const Todos: React.FC = () => {
   const [newTodoText, setNewTodoText] = useState('');
   const [standupMarkdown, setStandupMarkdown] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [showSaveInstructions, setShowSaveInstructions] = useState(false);
 
   const sensors = useSensors(
@@ -237,11 +235,6 @@ const Todos: React.FC = () => {
     setStandupMarkdown(''); // Clear preview after reload
   };
 
-  const handleImport = async (tasks: string[]) => {
-    // Add tasks directly to the todo list
-    tasks.forEach(task => addTodo(task));
-  };
-
   return (
     <Box padding={6} className="w-full mx-auto">
       {/* Header */}
@@ -294,39 +287,30 @@ const Todos: React.FC = () => {
             </Box>
           )}
         </Box>
-        <Box className="flex items-center" gap={2}>
-          {loadedFrom && (
-            <Box
-              paddingVertical={1}
-              paddingHorizontal={3}
-              backgroundColor={
-                loadedFrom.isToday
-                  ? BoxBackgroundColor.InfoMuted
-                  : BoxBackgroundColor.BackgroundAlternative
-              }
-              borderColor={
-                loadedFrom.isToday
-                  ? BoxBorderColor.InfoDefault
-                  : BoxBorderColor.BorderMuted
-              }
-              borderWidth={1}
-              className="rounded-md"
-            >
-              <Text variant={TextVariant.BodySm} color={TextColor.TextDefault}>
-                {loadedFrom.isToday ? '📝 ' : '📅 '}
-                {loadedFrom.filename}
-                {loadedFrom.isToday && ' (deduplicated)'}
-              </Text>
-            </Box>
-          )}
-          <Button
-            variant={ButtonVariant.Secondary}
-            startIconName={IconName.Refresh}
-            onClick={handleReload}
+        {loadedFrom && (
+          <Box
+            paddingVertical={1}
+            paddingHorizontal={3}
+            backgroundColor={
+              loadedFrom.isToday
+                ? BoxBackgroundColor.InfoMuted
+                : BoxBackgroundColor.BackgroundAlternative
+            }
+            borderColor={
+              loadedFrom.isToday
+                ? BoxBorderColor.InfoDefault
+                : BoxBorderColor.BorderMuted
+            }
+            borderWidth={1}
+            className="rounded-md"
           >
-            Reload from Markdown
-          </Button>
-        </Box>
+            <Text variant={TextVariant.BodySm} color={TextColor.TextDefault}>
+              {loadedFrom.isToday ? '📝 ' : '📅 '}
+              {loadedFrom.filename}
+              {loadedFrom.isToday && ' (deduplicated)'}
+            </Text>
+          </Box>
+        )}
       </Box>
 
       {/* Save Instructions Banner */}
@@ -452,7 +436,7 @@ const Todos: React.FC = () => {
               variant={ButtonVariant.Secondary}
               size={ButtonSize.Lg}
               startIconName={IconName.Upload}
-              onClick={() => setIsImportDialogOpen(true)}
+              onClick={handleReload}
               className="w-full sm:w-auto"
             >
               Load standup
@@ -497,13 +481,6 @@ const Todos: React.FC = () => {
           </Box>
         </Box>
       </Box>
-
-      {/* Import Dialog */}
-      <ImportFromStandupDialog
-        isOpen={isImportDialogOpen}
-        onClose={() => setIsImportDialogOpen(false)}
-        onImport={handleImport}
-      />
     </Box>
   );
 };
