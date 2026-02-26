@@ -444,10 +444,10 @@ const Todos: React.FC = () => {
               startIconName={IconName.Upload}
               onClick={handleReload}
               isLoading={isReloading}
-              isDisabled={isReloading}
+              isLoadingText="Loading..."
               className="w-full sm:w-auto"
             >
-              {isReloading ? 'Loading...' : 'Load standup'}
+              Load standup
             </Button>
             <Button
               variant={ButtonVariant.Primary}
