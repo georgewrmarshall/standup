@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Box, BoxBackgroundColor } from '@metamask/design-system-react';
 import Todos from './pages/Todos';
+import { Standup } from './pages/Standup';
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
     >
       <Routes>
         <Route path="/" element={<Todos />} />
+        <Route path="/standup/:date" element={<Standup />} />
       </Routes>
     </Box>
   );

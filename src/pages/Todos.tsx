@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Box,
   BoxAlignItems,
@@ -322,28 +323,33 @@ const Todos: React.FC = () => {
           )}
         </Box>
         {loadedFrom && (
-          <Box
-            paddingVertical={1}
-            paddingHorizontal={3}
-            backgroundColor={
-              loadedFrom.isToday
-                ? BoxBackgroundColor.InfoMuted
-                : BoxBackgroundColor.BackgroundAlternative
-            }
-            borderColor={
-              loadedFrom.isToday
-                ? BoxBorderColor.InfoDefault
-                : BoxBorderColor.BorderMuted
-            }
-            borderWidth={1}
-            className="rounded-md"
+          <Link
+            to={`/standup/${loadedFrom.filename.replace('.md', '')}`}
+            className="no-underline"
           >
-            <Text variant={TextVariant.BodySm} color={TextColor.TextDefault}>
-              {loadedFrom.isToday ? '📝 ' : '📅 '}
-              {loadedFrom.filename}
-              {loadedFrom.isToday && ' (deduplicated)'}
-            </Text>
-          </Box>
+            <Box
+              paddingVertical={1}
+              paddingHorizontal={3}
+              backgroundColor={
+                loadedFrom.isToday
+                  ? BoxBackgroundColor.InfoMuted
+                  : BoxBackgroundColor.BackgroundAlternative
+              }
+              borderColor={
+                loadedFrom.isToday
+                  ? BoxBorderColor.InfoDefault
+                  : BoxBorderColor.BorderMuted
+              }
+              borderWidth={1}
+              className="rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+            >
+              <Text variant={TextVariant.BodySm} color={TextColor.TextDefault}>
+                {loadedFrom.isToday ? '📝 ' : '📅 '}
+                {loadedFrom.filename}
+                {loadedFrom.isToday && ' (deduplicated)'}
+              </Text>
+            </Box>
+          </Link>
         )}
       </Box>
 
