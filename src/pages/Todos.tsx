@@ -331,12 +331,19 @@ const Todos: React.FC = () => {
         >
           <Box className="flex items-start justify-between">
             <Box gap={2} className="flex-1">
-              <Text variant={TextVariant.BodyMd} color={TextColor.InfoDefault} className="font-bold">
+              <Text
+                variant={TextVariant.BodyMd}
+                color={TextColor.InfoDefault}
+                className="font-bold"
+              >
                 File Downloaded!
               </Text>
               <Text variant={TextVariant.BodyMd} color={TextColor.TextDefault}>
-                Save the downloaded file to <code className="px-1 py-0.5 bg-default rounded text-sm">public/standups/</code> directory,
-                then click "Reload from Markdown" to sync.
+                Save the downloaded file to{' '}
+                <code className="px-1 py-0.5 bg-default rounded text-sm">
+                  public/standups/
+                </code>{' '}
+                directory, then click "Reload from Markdown" to sync.
               </Text>
             </Box>
             <ButtonIcon
@@ -444,7 +451,7 @@ const Todos: React.FC = () => {
               startIconName={IconName.Upload}
               onClick={handleReload}
               isLoading={isReloading}
-              isLoadingText="Loading..."
+              loadingText="Loading..."
               className="w-full sm:w-auto"
             >
               Load standup

@@ -198,6 +198,11 @@ export async function fetchLatestStandup(): Promise<{
       console.log('Response status:', response.status, response.ok);
       if (response.ok) {
         const content = await response.text();
+        // Check if the response is actually markdown and not HTML (Vite fallback)
+        if (content.trim().startsWith('<!DOCTYPE') || content.trim().startsWith('<html')) {
+          console.log('File not found (got HTML fallback), trying next...');
+          continue;
+        }
         console.log('Successfully loaded standup:', filename, 'length:', content.length);
         return { content, filename: `${filename}.md` };
       }
