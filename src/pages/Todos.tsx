@@ -202,9 +202,37 @@ const Todos: React.FC = () => {
     }
   };
 
+  const convertJiraTickets = (text: string): string => {
+    // Match Jira ticket numbers (e.g., DSYS-468, PROJ-123)
+    const ticketPattern = /\b([A-Z]+-\d+)\b/g;
+
+    // Match Jira URLs and extract ticket number
+    const urlPattern = /https?:\/\/[^\/]*atlassian\.net\/browse\/([A-Z]+-\d+)/g;
+
+    let result = text;
+
+    // First, replace full URLs with markdown links
+    result = result.replace(urlPattern, (match, ticketNumber) => {
+      return `[${ticketNumber}](https://consensyssoftware.atlassian.net/browse/${ticketNumber})`;
+    });
+
+    // Then, replace standalone ticket numbers (that aren't already in markdown links)
+    result = result.replace(ticketPattern, (match, ticketNumber) => {
+      // Check if this ticket number is already part of a markdown link
+      const beforeMatch = result.substring(0, result.indexOf(match));
+      if (beforeMatch.endsWith('[') || beforeMatch.endsWith('(https://consensyssoftware.atlassian.net/browse/')) {
+        return match; // Already part of a link, leave it alone
+      }
+      return `[${ticketNumber}](https://consensyssoftware.atlassian.net/browse/${ticketNumber})`;
+    });
+
+    return result;
+  };
+
   const handleAddTodo = () => {
     if (newTodoText.trim()) {
-      addTodo(newTodoText.trim());
+      const convertedText = convertJiraTickets(newTodoText.trim());
+      addTodo(convertedText);
       setNewTodoText('');
     }
   };
