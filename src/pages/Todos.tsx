@@ -179,6 +179,7 @@ const Todos: React.FC = () => {
   const [newTodoText, setNewTodoText] = useState('');
   const [standupMarkdown, setStandupMarkdown] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
   const [showSaveInstructions, setShowSaveInstructions] = useState(false);
 
   const sensors = useSensors(
@@ -229,10 +230,15 @@ const Todos: React.FC = () => {
     }
   };
 
-  const handleReload = () => {
-    reloadFromMarkdown();
-    setShowSaveInstructions(false);
-    setStandupMarkdown(''); // Clear preview after reload
+  const handleReload = async () => {
+    setIsReloading(true);
+    try {
+      await reloadFromMarkdown();
+      setShowSaveInstructions(false);
+      setStandupMarkdown(''); // Clear preview after reload
+    } finally {
+      setIsReloading(false);
+    }
   };
 
   return (
@@ -437,9 +443,11 @@ const Todos: React.FC = () => {
               size={ButtonSize.Lg}
               startIconName={IconName.Upload}
               onClick={handleReload}
+              isLoading={isReloading}
+              isDisabled={isReloading}
               className="w-full sm:w-auto"
             >
-              Load standup
+              {isReloading ? 'Loading...' : 'Load standup'}
             </Button>
             <Button
               variant={ButtonVariant.Primary}

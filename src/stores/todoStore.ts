@@ -23,7 +23,7 @@ interface TodoStore {
   generateStandupMarkdown: () => string;
   saveStandupToFile: (markdown: string) => void;
   loadTodos: () => void;
-  reloadFromMarkdown: () => void;
+  reloadFromMarkdown: () => Promise<void>;
   saveTodos: () => void;
   importFromStandup: (selectedSections: Array<keyof ParsedStandup>) => Promise<void>;
   // Selectors
@@ -183,9 +183,9 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     loadTodosFromLatestStandup(set);
   },
 
-  reloadFromMarkdown: () => {
+  reloadFromMarkdown: async () => {
     // Force reload from markdown files
-    loadTodosFromLatestStandup(set);
+    await loadTodosFromLatestStandup(set);
   },
 
   saveTodos: () => {
