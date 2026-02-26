@@ -192,9 +192,13 @@ export async function fetchLatestStandup(): Promise<{
   // Try today's file first, then yesterday's
   for (const filename of filenames) {
     try {
-      const response = await fetch(`${import.meta.env.BASE_URL}standups/${filename}.md`);
+      const url = `${import.meta.env.BASE_URL}standups/${filename}.md`;
+      console.log('Fetching standup from:', url);
+      const response = await fetch(url);
+      console.log('Response status:', response.status, response.ok);
       if (response.ok) {
         const content = await response.text();
+        console.log('Successfully loaded standup:', filename, 'length:', content.length);
         return { content, filename: `${filename}.md` };
       }
     } catch (error) {
@@ -202,5 +206,6 @@ export async function fetchLatestStandup(): Promise<{
     }
   }
 
+  console.warn('No standup file found');
   return null;
 }
