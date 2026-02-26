@@ -165,6 +165,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
 
 const Todos: React.FC = () => {
   const todos = useTodoStore((state) => state.todos);
+  const loadedFrom = useTodoStore((state) => state.loadedFrom);
   const addTodo = useTodoStore((state) => state.addTodo);
   const toggleTodo = useTodoStore((state) => state.toggleTodo);
   const updateTodo = useTodoStore((state) => state.updateTodo);
@@ -293,13 +294,39 @@ const Todos: React.FC = () => {
             </Box>
           )}
         </Box>
-        <Button
-          variant={ButtonVariant.Secondary}
-          startIconName={IconName.Refresh}
-          onClick={handleReload}
-        >
-          Reload from Markdown
-        </Button>
+        <Box className="flex items-center" gap={2}>
+          {loadedFrom && (
+            <Box
+              paddingVertical={1}
+              paddingHorizontal={3}
+              backgroundColor={
+                loadedFrom.isToday
+                  ? BoxBackgroundColor.InfoMuted
+                  : BoxBackgroundColor.BackgroundAlternative
+              }
+              borderColor={
+                loadedFrom.isToday
+                  ? BoxBorderColor.InfoDefault
+                  : BoxBorderColor.BorderMuted
+              }
+              borderWidth={1}
+              className="rounded-md"
+            >
+              <Text variant={TextVariant.BodySm} color={TextColor.TextDefault}>
+                {loadedFrom.isToday ? '📝 ' : '📅 '}
+                {loadedFrom.filename}
+                {loadedFrom.isToday && ' (deduplicated)'}
+              </Text>
+            </Box>
+          )}
+          <Button
+            variant={ButtonVariant.Secondary}
+            startIconName={IconName.Refresh}
+            onClick={handleReload}
+          >
+            Reload from Markdown
+          </Button>
+        </Box>
       </Box>
 
       {/* Save Instructions Banner */}

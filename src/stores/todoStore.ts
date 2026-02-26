@@ -14,6 +14,7 @@ interface Todo {
 
 interface TodoStore {
   todos: Todo[];
+  loadedFrom: { filename: string; isToday: boolean } | null;
   addTodo: (text: string) => void;
   toggleTodo: (id: string) => void;
   updateTodo: (id: string, text: string) => void;
@@ -32,6 +33,7 @@ interface TodoStore {
 
 export const useTodoStore = create<TodoStore>((set, get) => ({
   todos: [],
+  loadedFrom: null,
 
   // Selectors
   getCompleted: () => get().todos.filter(todo => todo.completed),
@@ -283,41 +285,92 @@ const loadTodosFromLatestStandup = async (set: (partial: Partial<TodoStore>) => 
     // Parse the standup file with the new parser
     const parsed = parseStandupFile(standupData.content);
 
-    // Combine yesterday and today tasks with their completion status
-    const todos: Todo[] = [];
+    // Check if this is today's file
+    const today = getTodayISO();
+    const isToday = standupData.filename === `${today}.md`;
 
-    // Add yesterday's tasks
-    parsed.yesterday.forEach(task => {
-      todos.push({
-        id: crypto.randomUUID(),
-        text: task.text,
-        completed: task.completed,
-        createdAt: new Date().toISOString(),
-        ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+    // Normalize text for comparison (remove extra whitespace, lowercase)
+    const normalizeText = (text: string) => text.toLowerCase().trim().replace(/\s+/g, ' ');
+
+    // When loading from today's file, deduplicate tasks between yesterday and today sections
+    // Yesterday section has completion status (✅/❌), Today section might not
+    // Prefer yesterday's completion status over today's
+    if (isToday) {
+      const taskMap = new Map<string, Todo>();
+
+      // First, add all yesterday's tasks (with their completion status)
+      parsed.yesterday.forEach(task => {
+        const normalized = normalizeText(task.text);
+        taskMap.set(normalized, {
+          id: crypto.randomUUID(),
+          text: task.text,
+          completed: task.completed,
+          createdAt: new Date().toISOString(),
+          ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+        });
       });
-    });
 
-    // Add today's tasks
-    parsed.today.forEach(task => {
-      todos.push({
-        id: crypto.randomUUID(),
-        text: task.text,
-        completed: task.completed,
-        createdAt: new Date().toISOString(),
-        ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+      // Then, add today's tasks only if they don't already exist
+      // If a task exists in both sections, keep the one from yesterday (with status)
+      parsed.today.forEach(task => {
+        const normalized = normalizeText(task.text);
+        if (!taskMap.has(normalized)) {
+          taskMap.set(normalized, {
+            id: crypto.randomUUID(),
+            text: task.text,
+            completed: task.completed,
+            createdAt: new Date().toISOString(),
+            ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+          });
+        }
       });
-    });
 
-    // Sort: incomplete first, then completed
-    const sorted = [
-      ...todos.filter(todo => !todo.completed),
-      ...todos.filter(todo => todo.completed),
-    ];
+      // Convert map to array and sort
+      const todos = Array.from(taskMap.values());
+      const sorted = [
+        ...todos.filter(todo => !todo.completed),
+        ...todos.filter(todo => todo.completed),
+      ];
 
-    set({ todos: sorted });
-    saveTodosToStorage(sorted);
+      set({ todos: sorted, loadedFrom: { filename: standupData.filename, isToday: true } });
+      saveTodosToStorage(sorted);
+    } else {
+      // Loading from yesterday's or older file - combine all tasks without deduplication
+      const todos: Todo[] = [];
+
+      // Add yesterday's tasks
+      parsed.yesterday.forEach(task => {
+        todos.push({
+          id: crypto.randomUUID(),
+          text: task.text,
+          completed: task.completed,
+          createdAt: new Date().toISOString(),
+          ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+        });
+      });
+
+      // Add today's tasks
+      parsed.today.forEach(task => {
+        todos.push({
+          id: crypto.randomUUID(),
+          text: task.text,
+          completed: task.completed,
+          createdAt: new Date().toISOString(),
+          ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+        });
+      });
+
+      // Sort: incomplete first, then completed
+      const sorted = [
+        ...todos.filter(todo => !todo.completed),
+        ...todos.filter(todo => todo.completed),
+      ];
+
+      set({ todos: sorted, loadedFrom: { filename: standupData.filename, isToday: false } });
+      saveTodosToStorage(sorted);
+    }
   } catch (error) {
     logError('loadTodosFromLatestStandup: Failed to load from standup files', error);
-    set({ todos: [] });
+    set({ todos: [], loadedFrom: null });
   }
 };
