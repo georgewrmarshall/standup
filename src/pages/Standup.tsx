@@ -9,6 +9,7 @@ import {
   TextColor,
   TextVariant,
   IconName,
+  FontFamily,
 } from '@metamask/design-system-react';
 
 export const Standup: React.FC = () => {
@@ -136,7 +137,7 @@ export const Standup: React.FC = () => {
 
   return (
     <Box className="min-h-screen bg-background-default p-4 md:p-6">
-      <Box className="max-w-4xl mx-auto" gap={6}>
+      <Box className="max-w-4xl mx-auto flex flex-col gap-4" gap={6}>
         {/* Header with back button and pagination */}
         <Box className="flex items-center justify-between flex-wrap gap-4">
           <Box className="flex items-center gap-3">
@@ -146,22 +147,30 @@ export const Standup: React.FC = () => {
                 ariaLabel="Back to todos"
               />
             </Link>
-            <Text variant={TextVariant.HeadingLg} color={TextColor.TextDefault}>
+            <Text
+              variant={TextVariant.HeadingLg}
+              fontFamily={FontFamily.Accent}
+              color={TextColor.TextDefault}
+            >
               Standup
             </Text>
           </Box>
 
           {/* Pagination Navigation */}
           <Box className="flex items-center gap-1">
+            <Text
+              variant={TextVariant.BodyMd}
+              color={TextColor.TextMuted}
+              className="px-2"
+            >
+              {date}
+            </Text>
             <ButtonIcon
               iconName={IconName.ArrowLeft}
               ariaLabel="Previous standup"
               disabled={!prevDate}
               onClick={() => prevDate && navigate(`/standup/${prevDate}`)}
             />
-            <Text variant={TextVariant.BodyMd} color={TextColor.TextMuted} className="px-2">
-              {date}
-            </Text>
             <ButtonIcon
               iconName={IconName.ArrowRight}
               ariaLabel="Next standup"
