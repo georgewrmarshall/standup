@@ -2,18 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Box,
-  BoxAlignItems,
   BoxBorderColor,
   BoxBackgroundColor,
-  BoxJustifyContent,
   ButtonIcon,
-  ButtonSize,
-  ButtonVariant,
   Text,
   TextColor,
   TextVariant,
+  IconName,
 } from '@metamask/design-system-react';
-import { IconName } from '@metamask/design-system-react';
 
 export const Standup: React.FC = () => {
   const { date } = useParams<{ date: string }>();
@@ -40,7 +36,7 @@ export const Standup: React.FC = () => {
       try {
         const url = `${import.meta.env.BASE_URL}standups/${dateStr}.md`;
         const response = await fetch(url, { method: 'HEAD' });
-        if (response.ok) {
+        if (response.ok && dateStr) {
           dates.push(dateStr);
         }
       } catch {
@@ -67,7 +63,10 @@ export const Standup: React.FC = () => {
       const content = await response.text();
 
       // Check if the response is actually markdown and not HTML
-      if (content.trim().startsWith('<!DOCTYPE') || content.trim().startsWith('<html')) {
+      if (
+        content.trim().startsWith('<!DOCTYPE') ||
+        content.trim().startsWith('<html')
+      ) {
         throw new Error('Standup not found');
       }
 
@@ -78,13 +77,13 @@ export const Standup: React.FC = () => {
       const currentIndex = availableDates.indexOf(dateStr);
 
       if (currentIndex > 0) {
-        setPrevDate(availableDates[currentIndex - 1]);
+        setPrevDate(availableDates[currentIndex - 1] || null);
       } else {
         setPrevDate(null);
       }
 
       if (currentIndex < availableDates.length - 1) {
-        setNextDate(availableDates[currentIndex + 1]);
+        setNextDate(availableDates[currentIndex + 1] || null);
       } else {
         setNextDate(null);
       }
@@ -101,16 +100,6 @@ export const Standup: React.FC = () => {
       fetchStandup(date);
     }
   }, [date]);
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
-    return d.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
 
   if (loading) {
     return (
@@ -132,11 +121,9 @@ export const Standup: React.FC = () => {
             <ButtonIcon
               iconName={IconName.ArrowLeft}
               ariaLabel="Back to todos"
-              variant={ButtonVariant.Secondary}
-              size={ButtonSize.Md}
             />
           </Link>
-          <Text variant={TextVariant.HeadingLg} color={TextColor.Error}>
+          <Text variant={TextVariant.HeadingLg} color={TextColor.ErrorDefault}>
             {error || 'Standup not found'}
           </Text>
           <Text variant={TextVariant.BodyMd} color={TextColor.TextDefault}>
@@ -150,39 +137,37 @@ export const Standup: React.FC = () => {
   return (
     <Box className="min-h-screen bg-background-default p-4 md:p-6">
       <Box className="max-w-4xl mx-auto" gap={6}>
-        {/* Header with back button */}
-        <Box
-          display="flex"
-          alignItems={BoxAlignItems.Center}
-          justifyContent={BoxJustifyContent.SpaceBetween}
-          className="flex-wrap gap-4"
-        >
-          <Box display="flex" alignItems={BoxAlignItems.Center} gap={3}>
+        {/* Header with back button and pagination */}
+        <Box className="flex items-center justify-between flex-wrap gap-4">
+          <Box className="flex items-center gap-3">
             <Link to="/" className="no-underline">
               <ButtonIcon
                 iconName={IconName.ArrowLeft}
                 ariaLabel="Back to todos"
-                variant={ButtonVariant.Secondary}
-                size={ButtonSize.Md}
               />
             </Link>
-            <Box gap={1}>
-              <Text variant={TextVariant.HeadingLg} color={TextColor.TextDefault}>
-                Standup
-              </Text>
-              <Box
-                paddingVertical={1}
-                paddingHorizontal={3}
-                backgroundColor={BoxBackgroundColor.InfoMuted}
-                borderColor={BoxBorderColor.InfoDefault}
-                borderWidth={1}
-                className="rounded-md inline-block"
-              >
-                <Text variant={TextVariant.BodySm} color={TextColor.TextDefault}>
-                  📅 {formatDate(date || '')}
-                </Text>
-              </Box>
-            </Box>
+            <Text variant={TextVariant.HeadingLg} color={TextColor.TextDefault}>
+              Standup
+            </Text>
+          </Box>
+
+          {/* Pagination Navigation */}
+          <Box className="flex items-center gap-3">
+            <ButtonIcon
+              iconName={IconName.ArrowLeft}
+              ariaLabel="Previous standup"
+              disabled={!prevDate}
+              onClick={() => prevDate && navigate(`/standup/${prevDate}`)}
+            />
+            <Text variant={TextVariant.BodyMd} color={TextColor.TextMuted}>
+              {date}
+            </Text>
+            <ButtonIcon
+              iconName={IconName.ArrowRight}
+              ariaLabel="Next standup"
+              disabled={!nextDate}
+              onClick={() => nextDate && navigate(`/standup/${nextDate}`)}
+            />
           </Box>
         </Box>
 
@@ -197,36 +182,6 @@ export const Standup: React.FC = () => {
           <pre className="font-mono text-sm text-default whitespace-pre-wrap">
             <code>{markdownContent}</code>
           </pre>
-        </Box>
-
-        {/* Pagination Navigation */}
-        <Box
-          display="flex"
-          alignItems={BoxAlignItems.Center}
-          justifyContent={BoxJustifyContent.SpaceBetween}
-          className="pt-4 border-t border-muted"
-        >
-          <ButtonIcon
-            iconName={IconName.ArrowLeft}
-            ariaLabel="Previous standup"
-            variant={ButtonVariant.Secondary}
-            size={ButtonSize.Md}
-            disabled={!prevDate}
-            onClick={() => prevDate && navigate(`/standup/${prevDate}`)}
-          />
-
-          <Text variant={TextVariant.BodyMd} color={TextColor.TextMuted}>
-            {date}
-          </Text>
-
-          <ButtonIcon
-            iconName={IconName.ArrowRight}
-            ariaLabel="Next standup"
-            variant={ButtonVariant.Secondary}
-            size={ButtonSize.Md}
-            disabled={!nextDate}
-            onClick={() => nextDate && navigate(`/standup/${nextDate}`)}
-          />
         </Box>
       </Box>
     </Box>
