@@ -152,14 +152,14 @@ export const Standup: React.FC = () => {
           </Box>
 
           {/* Pagination Navigation */}
-          <Box className="flex items-center gap-3">
+          <Box className="flex items-center gap-1">
             <ButtonIcon
               iconName={IconName.ArrowLeft}
               ariaLabel="Previous standup"
               disabled={!prevDate}
               onClick={() => prevDate && navigate(`/standup/${prevDate}`)}
             />
-            <Text variant={TextVariant.BodyMd} color={TextColor.TextMuted}>
+            <Text variant={TextVariant.BodyMd} color={TextColor.TextMuted} className="px-2">
               {date}
             </Text>
             <ButtonIcon
