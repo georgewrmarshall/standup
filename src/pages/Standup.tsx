@@ -10,6 +10,7 @@ import {
   TextVariant,
   IconName,
   FontFamily,
+  TextAlign,
 } from '@metamask/design-system-react';
 
 export const Standup: React.FC = () => {
@@ -58,7 +59,7 @@ export const Standup: React.FC = () => {
       const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error('Standup not found');
+        throw new Error('Not found');
       }
 
       const content = await response.text();
@@ -68,7 +69,7 @@ export const Standup: React.FC = () => {
         content.trim().startsWith('<!DOCTYPE') ||
         content.trim().startsWith('<html')
       ) {
-        throw new Error('Standup not found');
+        throw new Error('Not found');
       }
 
       setMarkdownContent(content);
@@ -116,20 +117,40 @@ export const Standup: React.FC = () => {
 
   if (error || !markdownContent) {
     return (
-      <Box className="min-h-screen bg-background-default p-4">
-        <Box className="max-w-4xl mx-auto" gap={4}>
-          <Link to="/" className="no-underline">
-            <ButtonIcon
-              iconName={IconName.ArrowLeft}
-              ariaLabel="Back to todos"
-            />
-          </Link>
-          <Text variant={TextVariant.HeadingLg} color={TextColor.ErrorDefault}>
-            {error || 'Standup not found'}
-          </Text>
-          <Text variant={TextVariant.BodyMd} color={TextColor.TextDefault}>
-            No standup file found for {date}
-          </Text>
+      <Box className="min-h-screen bg-background-default p-4 md:p-6">
+        <Box className="max-w-4xl mx-auto flex flex-col gap-4">
+          <Box className="flex items-center gap-3">
+            <Link to="/" className="no-underline">
+              <ButtonIcon
+                iconName={IconName.ArrowLeft}
+                ariaLabel="Back to todos"
+              />
+            </Link>
+            <Text
+              variant={TextVariant.HeadingLg}
+              fontFamily={FontFamily.Accent}
+              color={TextColor.TextDefault}
+            >
+              Standup
+            </Text>
+          </Box>
+          <Box className="max-w-4xl mx-auto flex flex-col gap-4">
+            <Text
+              variant={TextVariant.HeadingMd}
+              fontFamily={FontFamily.Accent}
+              color={TextColor.ErrorDefault}
+              textAlign={TextAlign.Center}
+            >
+              {error || 'Not found'}
+            </Text>
+            <Text
+              variant={TextVariant.BodyMd}
+              color={TextColor.TextDefault}
+              textAlign={TextAlign.Center}
+            >
+              No standup file found for {date}
+            </Text>
+          </Box>
         </Box>
       </Box>
     );
@@ -137,7 +158,7 @@ export const Standup: React.FC = () => {
 
   return (
     <Box className="min-h-screen bg-background-default p-4 md:p-6">
-      <Box className="max-w-4xl mx-auto flex flex-col gap-4" gap={6}>
+      <Box className="max-w-4xl mx-auto flex flex-col gap-4">
         {/* Header with back button and pagination */}
         <Box className="flex items-center justify-between flex-wrap gap-4">
           <Box className="flex items-center gap-3">
