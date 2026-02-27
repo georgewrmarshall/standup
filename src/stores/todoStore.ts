@@ -179,12 +179,27 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   },
 
   loadTodos: () => {
-    // Always load from the latest standup markdown file (markdown is source of truth)
+    // Try to load from localStorage first
+    const stored = localStorage.getItem('standup-todos');
+    const storedLoadedFrom = localStorage.getItem('standup-loaded-from');
+
+    if (stored) {
+      try {
+        const todos = JSON.parse(stored);
+        const loadedFrom = storedLoadedFrom ? JSON.parse(storedLoadedFrom) : null;
+        set({ todos, loadedFrom });
+        return;
+      } catch (error) {
+        logError('loadTodos: Failed to parse localStorage', error);
+      }
+    }
+
+    // If no localStorage data, load from markdown as fallback
     loadTodosFromLatestStandup(set);
   },
 
   reloadFromMarkdown: async () => {
-    // Force reload from markdown files
+    // Explicitly reload from markdown files (overrides localStorage)
     await loadTodosFromLatestStandup(set);
   },
 
@@ -267,8 +282,11 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   },
 }));
 
-const saveTodosToStorage = (todos: Todo[]) => {
+const saveTodosToStorage = (todos: Todo[], loadedFrom?: { filename: string; isToday: boolean } | null) => {
   localStorage.setItem('standup-todos', JSON.stringify(todos));
+  if (loadedFrom !== undefined) {
+    localStorage.setItem('standup-loaded-from', JSON.stringify(loadedFrom));
+  }
 };
 
 const loadTodosFromLatestStandup = async (set: (partial: Partial<TodoStore>) => void) => {
@@ -332,8 +350,9 @@ const loadTodosFromLatestStandup = async (set: (partial: Partial<TodoStore>) => 
         ...todos.filter(todo => todo.completed),
       ];
 
-      set({ todos: sorted, loadedFrom: { filename: standupData.filename, isToday: true } });
-      saveTodosToStorage(sorted);
+      const loadedFromData = { filename: standupData.filename, isToday: true };
+      set({ todos: sorted, loadedFrom: loadedFromData });
+      saveTodosToStorage(sorted, loadedFromData);
     } else {
       // Loading from yesterday's or older file - combine all tasks without deduplication
       const todos: Todo[] = [];
@@ -366,8 +385,9 @@ const loadTodosFromLatestStandup = async (set: (partial: Partial<TodoStore>) => 
         ...todos.filter(todo => todo.completed),
       ];
 
-      set({ todos: sorted, loadedFrom: { filename: standupData.filename, isToday: false } });
-      saveTodosToStorage(sorted);
+      const loadedFromData = { filename: standupData.filename, isToday: false };
+      set({ todos: sorted, loadedFrom: loadedFromData });
+      saveTodosToStorage(sorted, loadedFromData);
     }
   } catch (error) {
     logError('loadTodosFromLatestStandup: Failed to load from standup files', error);
