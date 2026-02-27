@@ -12,7 +12,7 @@ function App() {
     >
       <Routes>
         <Route path="/" element={<Todos />} />
-        <Route path="/standup/:date" element={<Standup />} />
+        <Route path="/:date" element={<Standup />} />
       </Routes>
     </Box>
   );

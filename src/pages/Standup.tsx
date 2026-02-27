@@ -190,13 +190,13 @@ export const Standup: React.FC = () => {
               iconName={IconName.ArrowLeft}
               ariaLabel="Previous standup"
               disabled={!prevDate}
-              onClick={() => prevDate && navigate(`/standup/${prevDate}`)}
+              onClick={() => prevDate && navigate(`/${prevDate}`)}
             />
             <ButtonIcon
               iconName={IconName.ArrowRight}
               ariaLabel="Next standup"
               disabled={!nextDate}
-              onClick={() => nextDate && navigate(`/standup/${nextDate}`)}
+              onClick={() => nextDate && navigate(`/${nextDate}`)}
             />
           </Box>
         </Box>

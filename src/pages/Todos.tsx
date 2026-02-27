@@ -324,7 +324,7 @@ const Todos: React.FC = () => {
         </Box>
         {loadedFrom && (
           <Link
-            to={`/standup/${loadedFrom.filename.replace('.md', '')}`}
+            to={`/${loadedFrom.filename.replace('.md', '')}`}
             className="no-underline"
           >
             <Box
