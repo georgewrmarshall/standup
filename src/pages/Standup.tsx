@@ -9,20 +9,16 @@ import {
   ButtonIcon,
   ButtonSize,
   ButtonVariant,
-  Icon,
-  IconName,
-  IconSize,
   Text,
   TextColor,
   TextVariant,
 } from '@metamask/design-system-react';
-import { MarkdownText } from '../components/MarkdownText';
-import { parseStandupFile, ParsedStandup } from '../utils/standupParser';
+import { IconName } from '@metamask/design-system-react';
 
 export const Standup: React.FC = () => {
   const { date } = useParams<{ date: string }>();
   const navigate = useNavigate();
-  const [standup, setStandup] = useState<ParsedStandup | null>(null);
+  const [markdownContent, setMarkdownContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [prevDate, setPrevDate] = useState<string | null>(null);
@@ -75,8 +71,7 @@ export const Standup: React.FC = () => {
         throw new Error('Standup not found');
       }
 
-      const parsed = parseStandupFile(content);
-      setStandup(parsed);
+      setMarkdownContent(content);
 
       // Fetch available dates and determine prev/next
       const availableDates = await fetchAvailableDates();
@@ -95,7 +90,7 @@ export const Standup: React.FC = () => {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load standup');
-      setStandup(null);
+      setMarkdownContent('');
     } finally {
       setLoading(false);
     }
@@ -129,7 +124,7 @@ export const Standup: React.FC = () => {
     );
   }
 
-  if (error || !standup) {
+  if (error || !markdownContent) {
     return (
       <Box className="min-h-screen bg-background-default p-4">
         <Box className="max-w-4xl mx-auto" gap={4}>
@@ -191,125 +186,17 @@ export const Standup: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Standup Content */}
+        {/* Markdown Content */}
         <Box
-          backgroundColor={BoxBackgroundColor.BackgroundAlternative}
           borderColor={BoxBorderColor.BorderMuted}
           borderWidth={1}
-          className="rounded-lg p-6"
-          gap={6}
+          backgroundColor={BoxBackgroundColor.BackgroundAlternative}
+          padding={4}
+          className="rounded-lg overflow-auto"
         >
-          {/* Yesterday Section */}
-          {standup.yesterday.length > 0 && (
-            <Box gap={3}>
-              <Text variant={TextVariant.HeadingMd} color={TextColor.TextDefault}>
-                Yesterday
-              </Text>
-              <Box gap={2} className="pl-4">
-                {standup.yesterday.map((task, index) => (
-                  <Box
-                    key={index}
-                    display="flex"
-                    alignItems={BoxAlignItems.FlexStart}
-                    gap={2}
-                  >
-                    <Icon
-                      name={task.completed ? IconName.CheckBold : IconName.Close}
-                      size={IconSize.Sm}
-                      color={task.completed ? TextColor.SuccessDefault : TextColor.ErrorDefault}
-                      className="mt-1 flex-shrink-0"
-                    />
-                    <MarkdownText
-                      text={task.text}
-                      className="flex-1"
-                      variant={TextVariant.BodyMd}
-                      color={TextColor.TextDefault}
-                    />
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
-
-          {/* Today Section */}
-          {standup.today.length > 0 && (
-            <Box gap={3}>
-              <Text variant={TextVariant.HeadingMd} color={TextColor.TextDefault}>
-                Today
-              </Text>
-              <Box gap={2} className="pl-4">
-                {standup.today.map((task, index) => (
-                  <Box
-                    key={index}
-                    display="flex"
-                    alignItems={BoxAlignItems.FlexStart}
-                    gap={2}
-                  >
-                    <Icon
-                      name={task.completed ? IconName.CheckBold : IconName.Close}
-                      size={IconSize.Sm}
-                      color={task.completed ? TextColor.SuccessDefault : TextColor.ErrorDefault}
-                      className="mt-1 flex-shrink-0"
-                    />
-                    <MarkdownText
-                      text={task.text}
-                      className="flex-1"
-                      variant={TextVariant.BodyMd}
-                      color={TextColor.TextDefault}
-                    />
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
-
-          {/* Blockers Section */}
-          {standup.blockers.length > 0 && (
-            <Box gap={3}>
-              <Text variant={TextVariant.HeadingMd} color={TextColor.TextDefault}>
-                Blockers
-              </Text>
-              <Box gap={2} className="pl-4">
-                {standup.blockers.map((blocker, index) => (
-                  <Box key={index} display="flex" alignItems={BoxAlignItems.FlexStart} gap={2}>
-                    <Text variant={TextVariant.BodyMd} color={TextColor.TextDefault}>
-                      •
-                    </Text>
-                    <MarkdownText
-                      text={blocker}
-                      className="flex-1"
-                      variant={TextVariant.BodyMd}
-                      color={TextColor.TextDefault}
-                    />
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
-
-          {/* Backlog Section */}
-          {standup.backlog.length > 0 && (
-            <Box gap={3}>
-              <Text variant={TextVariant.HeadingMd} color={TextColor.TextDefault}>
-                Backlog
-              </Text>
-              <Box gap={2} className="pl-4">
-                {standup.backlog.map((item, index) => (
-                  <Box key={index} display="flex" alignItems={BoxAlignItems.FlexStart} gap={2}>
-                    <Text variant={TextVariant.BodyMd} color={TextColor.TextDefault}>
-                      •
-                    </Text>
-                    <MarkdownText
-                      text={item}
-                      className="flex-1"
-                      variant={TextVariant.BodyMd}
-                      color={TextColor.TextDefault}
-                    />
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-          )}
+          <pre className="font-mono text-sm text-default whitespace-pre-wrap">
+            <code>{markdownContent}</code>
+          </pre>
         </Box>
 
         {/* Pagination Navigation */}
