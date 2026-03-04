@@ -313,6 +313,7 @@ const loadTodosFromLatestStandup = async (set: (partial: Partial<TodoStore>) => 
     // When loading from today's file, deduplicate tasks between yesterday and today sections
     // Yesterday section has completion status (✅/❌), Today section might not
     // Prefer yesterday's completion status over today's
+    // Also include backlog tasks as incomplete todos if they are missing
     if (isToday) {
       const taskMap = new Map<string, Todo>();
 
@@ -339,6 +340,19 @@ const loadTodosFromLatestStandup = async (set: (partial: Partial<TodoStore>) => 
             completed: task.completed,
             createdAt: new Date().toISOString(),
             ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+          });
+        }
+      });
+
+      // Finally, add backlog tasks as incomplete todos if they don't already exist
+      parsed.backlog.forEach(text => {
+        const normalized = normalizeText(text);
+        if (!taskMap.has(normalized)) {
+          taskMap.set(normalized, {
+            id: crypto.randomUUID(),
+            text,
+            completed: false,
+            createdAt: new Date().toISOString(),
           });
         }
       });
@@ -376,6 +390,16 @@ const loadTodosFromLatestStandup = async (set: (partial: Partial<TodoStore>) => 
           completed: task.completed,
           createdAt: new Date().toISOString(),
           ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+        });
+      });
+
+      // Add backlog tasks as incomplete todos
+      parsed.backlog.forEach(text => {
+        todos.push({
+          id: crypto.randomUUID(),
+          text,
+          completed: false,
+          createdAt: new Date().toISOString(),
         });
       });
 
