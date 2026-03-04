@@ -105,6 +105,11 @@ Connects to Consensys Software Jira:
    - Review the auto-generated message
    - Copy and paste to Slack thread
 
+5. **Publish Standup File**
+   - Save the generated markdown file into `public/standups/`
+   - Run `yarn standup:publish`
+   - This commits the latest standup file as `chore: standup YYYY-MM-DD` and pushes it
+
 ### AI Skills
 
 The app includes several AI skills in `.claude/skills/`:
@@ -141,6 +146,7 @@ yarn dev
 - `yarn test:watch` - Run tests in watch mode
 - `yarn lint` - Check code quality
 - `yarn lint:fix` - Fix linting issues automatically
+- `yarn standup:publish` - Commit and push the most recently updated file in `public/standups/`
 
 ## Contributing
 

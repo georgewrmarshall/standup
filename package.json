@@ -16,6 +16,7 @@
     "lint": "eslint . && prettier --check '**/*.{json,md,yml}' --ignore-path .gitignore",
     "lint:fix": "eslint . --fix && prettier --write '**/*.{json,md,yml}' --ignore-path .gitignore",
     "preview": "vite preview",
+    "standup:publish": "node scripts/standup-publish.mjs",
     "test": "vitest",
     "test:watch": "vitest --watch"
   },
