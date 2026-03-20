@@ -22,32 +22,35 @@ function run(command, args, options = {}) {
 }
 
 function getRepoRoot() {
-  const result = run('git', ['rev-parse', '--show-toplevel'], { capture: true });
+  const result = run('git', ['rev-parse', '--show-toplevel'], {
+    capture: true,
+  });
   return result.stdout.trim();
 }
 
-function getLatestStandupFile(standupsDir) {
-  const entries = fs
-    .readdirSync(standupsDir)
-    .filter((filename) => filename.endsWith('.md'))
-    .map((filename) => {
-      const filePath = path.join(standupsDir, filename);
-      const stat = fs.statSync(filePath);
-      return { filename, mtimeMs: stat.mtimeMs };
-    });
+function getUnpublishedStandupFiles(standupsDir) {
+  const relativeDirPath = path.relative(process.cwd(), standupsDir);
+  const result = run('git', ['status', '--porcelain', '--', relativeDirPath], {
+    capture: true,
+  });
+  const output = result.stdout.trim();
 
-  if (entries.length === 0) {
-    return null;
+  if (!output) {
+    return [];
   }
 
-  entries.sort((a, b) => {
-    if (b.mtimeMs !== a.mtimeMs) {
-      return b.mtimeMs - a.mtimeMs;
+  const files = [];
+  for (const line of output.split('\n')) {
+    const filePath = line.slice(3).trim();
+    const filename = path.basename(filePath);
+    if (DATE_FILENAME_REGEX.test(filename)) {
+      files.push(filename);
     }
-    return b.filename.localeCompare(a.filename);
-  });
+  }
 
-  return entries[0].filename;
+  // Sort ascending by date so commits are in chronological order
+  files.sort((a, b) => a.localeCompare(b));
+  return files;
 }
 
 function main() {
@@ -60,28 +63,27 @@ function main() {
     process.exit(1);
   }
 
-  const latestFilename = getLatestStandupFile(standupsDir);
-  if (!latestFilename) {
-    console.error('No standup markdown files found in public/standups');
-    process.exit(1);
-  }
-
-  const relativePath = path.join('public', 'standups', latestFilename);
-  const filenameMatch = latestFilename.match(DATE_FILENAME_REGEX);
-  const standupDate = filenameMatch ? filenameMatch[1] : latestFilename.replace(/\.md$/, '');
-  const commitMessage = `chore: standup ${standupDate}`;
-
-  const statusResult = run('git', ['status', '--porcelain', '--', relativePath], { capture: true });
-  if (!statusResult.stdout.trim()) {
-    console.log(`No changes to publish for ${relativePath}`);
+  const unpublishedFiles = getUnpublishedStandupFiles(standupsDir);
+  if (unpublishedFiles.length === 0) {
+    console.log('No changes to publish');
     return;
   }
 
-  console.log(`Publishing ${relativePath}`);
-  run('git', ['add', '--', relativePath]);
-  run('git', ['commit', '-m', commitMessage]);
+  for (const filename of unpublishedFiles) {
+    const relativePath = path.join('public', 'standups', filename);
+    const filenameMatch = filename.match(DATE_FILENAME_REGEX);
+    const standupDate = filenameMatch
+      ? filenameMatch[1]
+      : filename.replace(/\.md$/, '');
+    const commitMessage = `chore: standup ${standupDate}`;
+
+    console.log(`Publishing ${relativePath}`);
+    run('git', ['add', '--', relativePath]);
+    run('git', ['commit', '-m', commitMessage]);
+  }
+
   run('git', ['push']);
-  console.log(`Done: ${commitMessage}`);
+  console.log(`Done: published ${unpublishedFiles.length} standup(s)`);
 }
 
 main();
