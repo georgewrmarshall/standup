@@ -182,6 +182,7 @@ const Todos: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
   const [showSaveInstructions, setShowSaveInstructions] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -221,7 +222,10 @@ const Todos: React.FC = () => {
     result = result.replace(ticketPattern, (match, ticketNumber) => {
       // Check if this ticket number is already part of a markdown link
       const beforeMatch = result.substring(0, result.indexOf(match));
-      if (beforeMatch.endsWith('[') || beforeMatch.endsWith('(https://consensyssoftware.atlassian.net/browse/')) {
+      if (
+        beforeMatch.endsWith('[') ||
+        beforeMatch.endsWith('(https://consensyssoftware.atlassian.net/browse/')
+      ) {
         return match; // Already part of a link, leave it alone
       }
       return `[${ticketNumber}](https://consensyssoftware.atlassian.net/browse/${ticketNumber})`;
@@ -267,6 +271,18 @@ const Todos: React.FC = () => {
       setStandupMarkdown(''); // Clear preview after reload
     } finally {
       setIsReloading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (standupMarkdown) {
+      try {
+        await navigator.clipboard.writeText(standupMarkdown);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
     }
   };
 
@@ -508,8 +524,17 @@ const Todos: React.FC = () => {
             borderWidth={1}
             backgroundColor={BoxBackgroundColor.BackgroundAlternative}
             padding={4}
-            className="rounded-lg min-h-[400px] overflow-auto"
+            className="rounded-lg min-h-[400px] overflow-auto relative"
           >
+            {standupMarkdown && (
+              <Box className="absolute top-2 right-2">
+                <ButtonIcon
+                  iconName={IconName.Copy}
+                  ariaLabel={copied ? 'Copied!' : 'Copy markdown'}
+                  onClick={handleCopy}
+                />
+              </Box>
+            )}
             {standupMarkdown ? (
               <pre className="font-mono text-sm text-default whitespace-pre-wrap">
                 <code>{standupMarkdown}</code>

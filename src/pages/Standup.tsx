@@ -21,7 +21,6 @@ export const Standup: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [prevDate, setPrevDate] = useState<string | null>(null);
   const [nextDate, setNextDate] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   // Fetch available standup dates
   const fetchAvailableDates = async (): Promise<string[]> => {
@@ -93,17 +92,6 @@ export const Standup: React.FC = () => {
       setMarkdownContent('');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Copy markdown content to clipboard
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(markdownContent);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
     }
   };
 
@@ -217,16 +205,9 @@ export const Standup: React.FC = () => {
           borderWidth={1}
           backgroundColor={BoxBackgroundColor.BackgroundAlternative}
           padding={4}
-          className="rounded-lg overflow-auto relative"
+          className="rounded-lg overflow-auto"
         >
-          <Box className="absolute top-2 left-2">
-            <ButtonIcon
-              iconName={IconName.Copy}
-              ariaLabel={copied ? 'Copied!' : 'Copy markdown'}
-              onClick={handleCopy}
-            />
-          </Box>
-          <pre className="font-mono text-sm text-default whitespace-pre-wrap pt-8">
+          <pre className="font-mono text-sm text-default whitespace-pre-wrap">
             <code>{markdownContent}</code>
           </pre>
         </Box>
