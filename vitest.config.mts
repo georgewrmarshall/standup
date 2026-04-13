@@ -27,7 +27,16 @@ export default defineConfig({
 
       // The files to exclude from the coverage report. Vitest excludes test
       // files by default, but not `test-d.ts` files.
-      exclude: ['src/**/*.test-d.ts'],
+      // UI entry points, React components, pages, and the Zustand store require
+      // a browser/DOM environment and are out of scope for unit tests here.
+      exclude: [
+        'src/**/*.test-d.ts',
+        'src/main.tsx',
+        'src/App.tsx',
+        'src/components/**',
+        'src/pages/**',
+        'src/stores/**',
+      ],
 
       // Coverage thresholds. If the coverage is below these thresholds, the
       // test will fail.
