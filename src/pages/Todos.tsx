@@ -47,6 +47,7 @@ interface SortableTodoItemProps {
   section: TodoSection;
   onToggle?: (isSelected: boolean) => void;
   onUpdate: (text: string) => void;
+  onMoveToBacklog?: () => void;
   onDelete: () => void;
 }
 
@@ -57,6 +58,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
   section,
   onToggle,
   onUpdate,
+  onMoveToBacklog,
   onDelete,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -170,12 +172,22 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
           </div>
         )}
       </Box>
-      <ButtonIcon
-        iconName={IconName.Trash}
-        ariaLabel="Delete todo"
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 transition-opacity"
-      />
+      <Box className="flex items-center">
+        {section === 'today' && (
+          <ButtonIcon
+            iconName={IconName.Bookmark}
+            ariaLabel="Move to backlog"
+            onClick={onMoveToBacklog}
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+          />
+        )}
+        <ButtonIcon
+          iconName={IconName.Trash}
+          ariaLabel="Delete todo"
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 transition-opacity"
+        />
+      </Box>
     </Box>
   );
 };
@@ -187,6 +199,7 @@ interface TodoSectionListProps {
   emptyState: string;
   onToggle: (id: string) => void;
   onUpdate: (id: string, text: string) => void;
+  onMoveToBacklog: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
@@ -197,6 +210,7 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
   emptyState,
   onToggle,
   onUpdate,
+  onMoveToBacklog,
   onDelete,
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id: section });
@@ -244,6 +258,11 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
                   todo.section === 'today' ? () => onToggle(todo.id) : undefined
                 }
                 onUpdate={(text) => onUpdate(todo.id, text)}
+                onMoveToBacklog={
+                  todo.section === 'today'
+                    ? () => onMoveToBacklog(todo.id)
+                    : undefined
+                }
                 onDelete={() => onDelete(todo.id)}
               />
             ))}
@@ -582,6 +601,7 @@ const Todos: React.FC = () => {
                   emptyState="Move something here when you're ready to work on it."
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
+                  onMoveToBacklog={(id) => moveTodo(id, 'backlog')}
                   onDelete={deleteTodo}
                 />
                 <TodoSectionList
@@ -591,6 +611,7 @@ const Todos: React.FC = () => {
                   emptyState="Drag tasks here to keep them out of today's standup."
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
+                  onMoveToBacklog={(id) => moveTodo(id, 'backlog')}
                   onDelete={deleteTodo}
                 />
               </Box>
