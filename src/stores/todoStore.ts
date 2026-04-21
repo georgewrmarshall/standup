@@ -1,13 +1,20 @@
 import { create } from 'zustand';
-import { getTodayISO, getYesterdayISO, getDisplayDate } from '../utils/dates';
+import { getTodayISO, getDisplayDate } from '../utils/dates';
 import { logError } from '../utils/errors';
 import { parseGitHubUrl } from '../utils/urlParser';
-import { fetchLatestStandup, parseStandupFile, type ParsedStandup } from '../utils/standupParser';
+import {
+  fetchLatestStandup,
+  parseStandupFile,
+  type ParsedStandup,
+} from '../utils/standupParser';
 
-interface Todo {
+export type TodoSection = 'today' | 'backlog';
+
+export interface Todo {
   id: string;
   text: string;
   completed: boolean;
+  section: TodoSection;
   createdAt: string;
   completedAt?: string;
 }
@@ -19,120 +26,151 @@ interface TodoStore {
   toggleTodo: (id: string) => void;
   updateTodo: (id: string, text: string) => void;
   deleteTodo: (id: string) => void;
-  reorderTodos: (activeId: string, overId: string) => void;
+  moveTodo: (
+    activeId: string,
+    targetSection: TodoSection,
+    overId?: string | null,
+  ) => void;
   generateStandupMarkdown: () => string;
   saveStandupToFile: (markdown: string) => void;
   loadTodos: () => void;
   reloadFromMarkdown: () => Promise<void>;
   saveTodos: () => void;
   importFromStandup: (selectedSections: Array<keyof ParsedStandup>) => Promise<void>;
-  // Selectors
   getCompleted: () => Todo[];
   getIncomplete: () => Todo[];
+  getBacklog: () => Todo[];
 }
 
 export const useTodoStore = create<TodoStore>((set, get) => ({
   todos: [],
   loadedFrom: null,
 
-  // Selectors
-  getCompleted: () => get().todos.filter(todo => todo.completed),
-  getIncomplete: () => get().todos.filter(todo => !todo.completed),
+  getCompleted: () =>
+    get().todos.filter((todo) => todo.section === 'today' && todo.completed),
+  getIncomplete: () =>
+    get().todos.filter((todo) => todo.section === 'today' && !todo.completed),
+  getBacklog: () =>
+    get().todos.filter((todo) => todo.section === 'backlog'),
 
   addTodo: (text) => {
-    // Parse GitHub URLs and convert to markdown links
     const processedText = parseGitHubUrl(text);
-
     const newTodo: Todo = {
       id: crypto.randomUUID(),
       text: processedText,
       completed: false,
+      section: 'today',
       createdAt: new Date().toISOString(),
     };
 
-    // Insert at the end of incomplete items (before completed items)
-    const currentTodos = get().todos;
-    const incomplete = currentTodos.filter(todo => !todo.completed);
-    const completed = currentTodos.filter(todo => todo.completed);
-    const updatedTodos = [...incomplete, newTodo, ...completed];
+    const updatedTodos = normalizeTodoOrder([...get().todos, newTodo]);
 
     set({ todos: updatedTodos });
     saveTodosToStorage(updatedTodos);
   },
 
   toggleTodo: (id) => {
-    const updatedTodos = get().todos.map(todo => {
-      if (todo.id === id) {
-        return {
-          ...todo,
-          completed: !todo.completed,
-          completedAt: !todo.completed ? new Date().toISOString() : undefined,
-        };
+    const updatedTodos = get().todos.map((todo) => {
+      if (todo.id !== id || todo.section === 'backlog') {
+        return todo;
       }
-      return todo;
+
+      return {
+        ...todo,
+        completed: !todo.completed,
+        completedAt: !todo.completed ? new Date().toISOString() : undefined,
+      };
     });
 
-    // Sort: incomplete items first, then completed items
-    const sorted = [
-      ...updatedTodos.filter(todo => !todo.completed),
-      ...updatedTodos.filter(todo => todo.completed),
-    ];
-
-    set({ todos: sorted });
-    saveTodosToStorage(sorted);
+    const normalizedTodos = normalizeTodoOrder(updatedTodos);
+    set({ todos: normalizedTodos });
+    saveTodosToStorage(normalizedTodos);
   },
 
   updateTodo: (id, text) => {
-    // Parse GitHub URLs and convert to markdown links
     const processedText = parseGitHubUrl(text);
 
-    set((state) => ({
-      todos: state.todos.map(todo =>
-        todo.id === id ? { ...todo, text: processedText } : todo
+    const updatedTodos = normalizeTodoOrder(
+      get().todos.map((todo) =>
+        todo.id === id ? { ...todo, text: processedText } : todo,
       ),
-    }));
-    saveTodosToStorage(get().todos);
+    );
+
+    set({ todos: updatedTodos });
+    saveTodosToStorage(updatedTodos);
   },
 
   deleteTodo: (id) => {
-    set((state) => ({ todos: state.todos.filter(todo => todo.id !== id) }));
+    set((state) => ({ todos: state.todos.filter((todo) => todo.id !== id) }));
     saveTodosToStorage(get().todos);
   },
 
-  reorderTodos: (activeId, overId) => {
+  moveTodo: (activeId, targetSection, overId = null) => {
     const todos = get().todos;
-    const oldIndex = todos.findIndex(todo => todo.id === activeId);
-    const newIndex = todos.findIndex(todo => todo.id === overId);
+    const activeIndex = todos.findIndex((todo) => todo.id === activeId);
 
-    if (oldIndex !== -1 && newIndex !== -1) {
-      const newTodos = [...todos];
-      const [removed] = newTodos.splice(oldIndex, 1);
-      if (removed) {
-        newTodos.splice(newIndex, 0, removed);
-        set({ todos: newTodos });
-        saveTodosToStorage(newTodos);
-      }
+    if (activeIndex === -1) {
+      return;
     }
+
+    const reorderedTodos = [...todos];
+    const [activeTodo] = reorderedTodos.splice(activeIndex, 1);
+
+    if (!activeTodo) {
+      return;
+    }
+
+    const movedTodo: Todo = {
+      ...activeTodo,
+      section: targetSection,
+      completed: targetSection === 'backlog' ? false : activeTodo.completed,
+      completedAt:
+        targetSection === 'backlog' ? undefined : activeTodo.completedAt,
+    };
+
+    const overIndex = overId
+      ? reorderedTodos.findIndex((todo) => todo.id === overId)
+      : -1;
+
+    if (overIndex !== -1) {
+      reorderedTodos.splice(overIndex, 0, movedTodo);
+    } else if (targetSection === 'today') {
+      const firstBacklogIndex = reorderedTodos.findIndex(
+        (todo) => todo.section === 'backlog',
+      );
+
+      if (firstBacklogIndex === -1) {
+        reorderedTodos.push(movedTodo);
+      } else {
+        reorderedTodos.splice(firstBacklogIndex, 0, movedTodo);
+      }
+    } else {
+      reorderedTodos.push(movedTodo);
+    }
+
+    const normalizedTodos = normalizeTodoOrder(reorderedTodos);
+    set({ todos: normalizedTodos });
+    saveTodosToStorage(normalizedTodos);
   },
 
   generateStandupMarkdown: () => {
     const todos = get().todos;
     const displayDate = getDisplayDate();
-
-    const completed = todos.filter(todo => todo.completed);
-    const notCompleted = todos.filter(todo => !todo.completed);
+    const todayTodos = todos.filter((todo) => todo.section === 'today');
+    const completed = todayTodos.filter((todo) => todo.completed);
+    const notCompleted = todayTodos.filter((todo) => !todo.completed);
+    const backlog = todos.filter((todo) => todo.section === 'backlog');
 
     let markdown = `_${displayDate}_\n\n`;
 
-    // Yesterday section
     markdown += `Yesterday\n\n`;
     if (completed.length > 0) {
-      completed.forEach(todo => {
+      completed.forEach((todo) => {
         markdown += `- ${todo.text} ✅\n`;
       });
     }
     if (notCompleted.length > 0) {
-      notCompleted.forEach(todo => {
+      notCompleted.forEach((todo) => {
         markdown += `- ${todo.text} ❌\n`;
       });
     }
@@ -141,10 +179,9 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     }
     markdown += '\n';
 
-    // Today section
     markdown += `Today\n\n`;
     if (notCompleted.length > 0) {
-      notCompleted.forEach(todo => {
+      notCompleted.forEach((todo) => {
         markdown += `- ${todo.text}\n`;
       });
     } else {
@@ -152,13 +189,17 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     }
     markdown += '\n';
 
-    // Blockers section
     markdown += `Blockers\n\n`;
     markdown += `- None\n\n`;
 
-    // Backlog section
     markdown += `Backlog\n\n`;
-    markdown += `- \n`;
+    if (backlog.length > 0) {
+      backlog.forEach((todo) => {
+        markdown += `- ${todo.text}\n`;
+      });
+    } else {
+      markdown += `- None\n`;
+    }
 
     return markdown;
   },
@@ -172,21 +213,18 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     a.download = `${date}.md`;
     a.click();
     URL.revokeObjectURL(url);
-
-    // Note: The user needs to save the file to public/standups/ directory
-    // After they save it, they should reload the page to sync with the markdown file
-    // We'll keep the current todos state until they reload
   },
 
   loadTodos: () => {
-    // Try to load from localStorage first
     const stored = localStorage.getItem('standup-todos');
     const storedLoadedFrom = localStorage.getItem('standup-loaded-from');
 
     if (stored) {
       try {
-        const todos = JSON.parse(stored);
-        const loadedFrom = storedLoadedFrom ? JSON.parse(storedLoadedFrom) : null;
+        const todos = normalizeTodoOrder(migrateStoredTodos(JSON.parse(stored)));
+        const loadedFrom = storedLoadedFrom
+          ? JSON.parse(storedLoadedFrom)
+          : null;
         set({ todos, loadedFrom });
         return;
       } catch (error) {
@@ -194,12 +232,10 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       }
     }
 
-    // If no localStorage data, load from markdown as fallback
     loadTodosFromLatestStandup(set);
   },
 
   reloadFromMarkdown: async () => {
-    // Explicitly reload from markdown files (overrides localStorage)
     await loadTodosFromLatestStandup(set);
   },
 
@@ -209,70 +245,70 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
 
   importFromStandup: async (selectedSections) => {
     try {
-      // Fetch the latest standup file
       const standupData = await fetchLatestStandup();
       if (!standupData) {
         throw new Error('No standup file found');
       }
 
-      // Parse the standup file
       const parsed = parseStandupFile(standupData.content);
+      const importedTasks: Array<{
+        text: string;
+        completed: boolean;
+        section: TodoSection;
+      }> = [];
 
-      // Collect tasks from selected sections
-      const importedTasks: { text: string; completed: boolean }[] = [];
       for (const section of selectedSections) {
         const sectionData = parsed[section];
 
-        // Handle TaskWithStatus[] for yesterday/today or string[] for blockers/backlog
-        if (Array.isArray(sectionData)) {
-          if (sectionData.length > 0) {
-            if (typeof sectionData[0] === 'string') {
-              // blockers or backlog (string[])
-              (sectionData as string[]).forEach(text => {
-                importedTasks.push({ text, completed: false });
-              });
-            } else {
-              // yesterday or today (TaskWithStatus[])
-              importedTasks.push(...(sectionData as Array<{ text: string; completed: boolean }>));
-            }
-          }
+        if (!Array.isArray(sectionData) || sectionData.length === 0) {
+          continue;
+        }
+
+        if (typeof sectionData[0] === 'string') {
+          (sectionData as string[]).forEach((text) => {
+            importedTasks.push({
+              text,
+              completed: false,
+              section: section === 'backlog' ? 'backlog' : 'today',
+            });
+          });
+        } else {
+          importedTasks.push(
+            ...(sectionData as Array<{ text: string; completed: boolean }>).map(
+              (task) => ({
+                ...task,
+                section: 'today' as const,
+              }),
+            ),
+          );
         }
       }
 
       if (importedTasks.length === 0) {
-        return; // Nothing to import
+        return;
       }
 
-      // Get existing todos
       const existingTodos = get().todos;
       const existingTexts = new Set(
-        existingTodos.map(todo => todo.text.toLowerCase().trim())
+        existingTodos.map((todo) => todo.text.toLowerCase().trim()),
       );
 
-      // Filter out duplicates and create new Todo objects with their completion status
       const newTodos: Todo[] = importedTasks
-        .filter(task => !existingTexts.has(task.text.toLowerCase().trim()))
-        .map(task => ({
+        .filter((task) => !existingTexts.has(task.text.toLowerCase().trim()))
+        .map((task) => ({
           id: crypto.randomUUID(),
           text: task.text,
           completed: task.completed,
+          section: task.section,
           createdAt: new Date().toISOString(),
           ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
         }));
 
       if (newTodos.length === 0) {
-        return; // All tasks were duplicates
+        return;
       }
 
-      // Merge: separate incomplete and completed
-      const existingIncomplete = existingTodos.filter(todo => !todo.completed);
-      const existingCompleted = existingTodos.filter(todo => todo.completed);
-      const newIncomplete = newTodos.filter(todo => !todo.completed);
-      const newCompleted = newTodos.filter(todo => todo.completed);
-
-      // Combine: incomplete first, then completed
-      const merged = [...existingIncomplete, ...newIncomplete, ...existingCompleted, ...newCompleted];
-
+      const merged = normalizeTodoOrder([...existingTodos, ...newTodos]);
       set({ todos: merged });
       saveTodosToStorage(merged);
     } catch (error) {
@@ -282,137 +318,167 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   },
 }));
 
-const saveTodosToStorage = (todos: Todo[], loadedFrom?: { filename: string; isToday: boolean } | null) => {
+const saveTodosToStorage = (
+  todos: Todo[],
+  loadedFrom?: { filename: string; isToday: boolean } | null,
+) => {
   localStorage.setItem('standup-todos', JSON.stringify(todos));
   if (loadedFrom !== undefined) {
     localStorage.setItem('standup-loaded-from', JSON.stringify(loadedFrom));
   }
 };
 
-const loadTodosFromLatestStandup = async (set: (partial: Partial<TodoStore>) => void) => {
+const normalizeTodoText = (text: string): string =>
+  text.toLowerCase().trim().replace(/\s+/g, ' ');
+
+const migrateStoredTodos = (todos: unknown): Todo[] => {
+  if (!Array.isArray(todos)) {
+    return [];
+  }
+
+  return todos.flatMap((todo) => {
+    if (!todo || typeof todo !== 'object') {
+      return [];
+    }
+
+    const storedTodo = todo as Partial<Todo>;
+    if (typeof storedTodo.id !== 'string' || typeof storedTodo.text !== 'string') {
+      return [];
+    }
+
+    return [
+      {
+        id: storedTodo.id,
+        text: storedTodo.text,
+        completed: Boolean(storedTodo.completed),
+        section: storedTodo.section === 'backlog' ? 'backlog' : 'today',
+        createdAt: storedTodo.createdAt ?? new Date().toISOString(),
+        completedAt: storedTodo.completedAt,
+      },
+    ];
+  });
+};
+
+const normalizeTodoOrder = (todos: Todo[]): Todo[] => {
+  const orderedTodos = [
+    ...todos.filter((todo) => todo.section === 'today' && !todo.completed),
+    ...todos.filter((todo) => todo.section === 'today' && todo.completed),
+    ...todos.filter((todo) => todo.section === 'backlog'),
+  ];
+  const seen = new Set<string>();
+
+  return orderedTodos.filter((todo) => {
+    const normalizedText = normalizeTodoText(todo.text);
+
+    if (!normalizedText || seen.has(normalizedText)) {
+      return false;
+    }
+
+    seen.add(normalizedText);
+    return true;
+  });
+};
+
+const loadTodosFromLatestStandup = async (
+  set: (partial: Partial<TodoStore>) => void,
+) => {
   try {
-    // Fetch the latest standup file using the parser utility
     const standupData = await fetchLatestStandup();
 
     if (!standupData) {
-      // No standup file found, start with empty todos
       set({ todos: [] });
       return;
     }
 
-    // Parse the standup file with the new parser
     const parsed = parseStandupFile(standupData.content);
-
-    // Check if this is today's file
     const today = getTodayISO();
     const isToday = standupData.filename === `${today}.md`;
-
-    // Normalize text for comparison (remove extra whitespace, lowercase)
-    const normalizeText = (text: string) => text.toLowerCase().trim().replace(/\s+/g, ' ');
-
-    // When loading from today's file, deduplicate tasks between yesterday and today sections
-    // Yesterday section has completion status (✅/❌), Today section might not
-    // Prefer yesterday's completion status over today's
-    // Also include backlog tasks as incomplete todos if they are missing
     if (isToday) {
       const taskMap = new Map<string, Todo>();
 
-      // First, add all yesterday's tasks (with their completion status)
-      parsed.yesterday.forEach(task => {
-        const normalized = normalizeText(task.text);
-        taskMap.set(normalized, {
+      parsed.yesterday.forEach((task) => {
+        taskMap.set(normalizeTodoText(task.text), {
           id: crypto.randomUUID(),
           text: task.text,
           completed: task.completed,
+          section: 'today',
           createdAt: new Date().toISOString(),
           ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
         });
       });
 
-      // Then, add today's tasks only if they don't already exist
-      // If a task exists in both sections, keep the one from yesterday (with status)
-      parsed.today.forEach(task => {
-        const normalized = normalizeText(task.text);
+      parsed.today.forEach((task) => {
+        const normalized = normalizeTodoText(task.text);
         if (!taskMap.has(normalized)) {
           taskMap.set(normalized, {
             id: crypto.randomUUID(),
             text: task.text,
             completed: task.completed,
+            section: 'today',
             createdAt: new Date().toISOString(),
             ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
           });
         }
       });
 
-      // Finally, add backlog tasks as incomplete todos if they don't already exist
-      parsed.backlog.forEach(text => {
-        const normalized = normalizeText(text);
+      parsed.backlog.forEach((text) => {
+        const normalized = normalizeTodoText(text);
         if (!taskMap.has(normalized)) {
           taskMap.set(normalized, {
             id: crypto.randomUUID(),
             text,
             completed: false,
+            section: 'backlog',
             createdAt: new Date().toISOString(),
           });
         }
       });
 
-      // Convert map to array and sort
-      const todos = Array.from(taskMap.values());
-      const sorted = [
-        ...todos.filter(todo => !todo.completed),
-        ...todos.filter(todo => todo.completed),
-      ];
-
+      const sorted = normalizeTodoOrder(Array.from(taskMap.values()));
       const loadedFromData = { filename: standupData.filename, isToday: true };
       set({ todos: sorted, loadedFrom: loadedFromData });
       saveTodosToStorage(sorted, loadedFromData);
-    } else {
-      // Loading from yesterday's or older file - combine all tasks without deduplication
-      const todos: Todo[] = [];
-
-      // Add yesterday's tasks
-      parsed.yesterday.forEach(task => {
-        todos.push({
-          id: crypto.randomUUID(),
-          text: task.text,
-          completed: task.completed,
-          createdAt: new Date().toISOString(),
-          ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
-        });
-      });
-
-      // Add today's tasks
-      parsed.today.forEach(task => {
-        todos.push({
-          id: crypto.randomUUID(),
-          text: task.text,
-          completed: task.completed,
-          createdAt: new Date().toISOString(),
-          ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
-        });
-      });
-
-      // Add backlog tasks as incomplete todos
-      parsed.backlog.forEach(text => {
-        todos.push({
-          id: crypto.randomUUID(),
-          text,
-          completed: false,
-          createdAt: new Date().toISOString(),
-        });
-      });
-
-      // Sort: incomplete first, then completed
-      const sorted = [
-        ...todos.filter(todo => !todo.completed),
-        ...todos.filter(todo => todo.completed),
-      ];
-
-      const loadedFromData = { filename: standupData.filename, isToday: false };
-      set({ todos: sorted, loadedFrom: loadedFromData });
-      saveTodosToStorage(sorted, loadedFromData);
+      return;
     }
+
+    const todos: Todo[] = [];
+
+    parsed.yesterday.forEach((task) => {
+      todos.push({
+        id: crypto.randomUUID(),
+        text: task.text,
+        completed: task.completed,
+        section: 'today',
+        createdAt: new Date().toISOString(),
+        ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+      });
+    });
+
+    parsed.today.forEach((task) => {
+      todos.push({
+        id: crypto.randomUUID(),
+        text: task.text,
+        completed: task.completed,
+        section: 'today',
+        createdAt: new Date().toISOString(),
+        ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+      });
+    });
+
+    parsed.backlog.forEach((text) => {
+      todos.push({
+        id: crypto.randomUUID(),
+        text,
+        completed: false,
+        section: 'backlog',
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    const sorted = normalizeTodoOrder(todos);
+    const loadedFromData = { filename: standupData.filename, isToday: false };
+    set({ todos: sorted, loadedFrom: loadedFromData });
+    saveTodosToStorage(sorted, loadedFromData);
   } catch (error) {
     logError('loadTodosFromLatestStandup: Failed to load from standup files', error);
     set({ todos: [], loadedFrom: null });
