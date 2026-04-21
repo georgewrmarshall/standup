@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import {
   Box,
   BoxAlignItems,
-  BoxBorderColor,
   BoxBackgroundColor,
+  BoxBorderColor,
   BoxJustifyContent,
   Button,
   ButtonHero,
@@ -22,12 +22,13 @@ import {
 } from '@metamask/design-system-react';
 import {
   DndContext,
-  closestCenter,
+  DragEndEvent,
   KeyboardSensor,
   PointerSensor,
+  closestCenter,
+  useDroppable,
   useSensor,
   useSensors,
-  DragEndEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -36,15 +37,17 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useTodoStore } from '../stores/todoStore';
 import { MarkdownText } from '../components/MarkdownText';
+import { useTodoStore, type Todo, type TodoSection } from '../stores/todoStore';
 
 interface SortableTodoItemProps {
   id: string;
   text: string;
   completed: boolean;
-  onToggle: () => void;
+  section: TodoSection;
+  onToggle?: (isSelected: boolean) => void;
   onUpdate: (text: string) => void;
+  onMoveToBacklog?: () => void;
   onDelete: () => void;
 }
 
@@ -52,22 +55,18 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
   id,
   text,
   completed,
+  section,
   onToggle,
   onUpdate,
+  onMoveToBacklog,
   onDelete,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -104,7 +103,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
   };
 
   const handleTextClick = () => {
-    if (!completed) {
+    if (!(section === 'today' && completed)) {
       setIsEditing(true);
     }
   };
@@ -129,7 +128,25 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
             className="text-text-alternative"
           />
         </div>
-        <Checkbox id={text} isSelected={completed} onChange={onToggle} />
+        {section === 'today' ? (
+          <Checkbox
+            id={text}
+            isSelected={completed}
+            onChange={() => onToggle?.(!completed)}
+          />
+        ) : (
+          <Box
+            alignItems={BoxAlignItems.Center}
+            justifyContent={BoxJustifyContent.Center}
+            className="w-5 h-5"
+          >
+            <Icon
+              name={IconName.Bookmark}
+              size={IconSize.Sm}
+              className="text-text-alternative"
+            />
+          </Box>
+        )}
         {isEditing ? (
           <input
             ref={inputRef}
@@ -146,19 +163,112 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
               text={text}
               variant={TextVariant.BodyMd}
               color={
-                completed ? TextColor.TextAlternative : TextColor.TextDefault
+                section === 'today' && completed
+                  ? TextColor.TextAlternative
+                  : TextColor.TextDefault
               }
-              className={completed ? 'line-through' : ''}
+              className={section === 'today' && completed ? 'line-through' : ''}
             />
           </div>
         )}
       </Box>
-      <ButtonIcon
-        iconName={IconName.Trash}
-        ariaLabel="Delete todo"
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 transition-opacity"
-      />
+      <Box className="flex items-center">
+        {section === 'today' && (
+          <ButtonIcon
+            iconName={IconName.Bookmark}
+            ariaLabel="Move to backlog"
+            onClick={onMoveToBacklog}
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+          />
+        )}
+        <ButtonIcon
+          iconName={IconName.Trash}
+          ariaLabel="Delete todo"
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 transition-opacity"
+        />
+      </Box>
+    </Box>
+  );
+};
+
+interface TodoSectionListProps {
+  title: string;
+  section: TodoSection;
+  todos: Todo[];
+  emptyState: string;
+  onToggle: (id: string) => void;
+  onUpdate: (id: string, text: string) => void;
+  onMoveToBacklog: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+const TodoSectionList: React.FC<TodoSectionListProps> = ({
+  title,
+  section,
+  todos,
+  emptyState,
+  onToggle,
+  onUpdate,
+  onMoveToBacklog,
+  onDelete,
+}) => {
+  const { setNodeRef, isOver } = useDroppable({ id: section });
+
+  return (
+    <Box
+      ref={setNodeRef}
+      borderColor={isOver ? BoxBorderColor.InfoDefault : BoxBorderColor.BorderMuted}
+      borderWidth={1}
+      className="rounded-lg overflow-hidden"
+    >
+      <Box
+        paddingVertical={3}
+        paddingHorizontal={4}
+        backgroundColor={
+          section === 'today'
+            ? BoxBackgroundColor.WarningMuted
+            : BoxBackgroundColor.BackgroundAlternative
+        }
+      >
+        <Text variant={TextVariant.HeadingSm} color={TextColor.TextDefault}>
+          {title}
+        </Text>
+      </Box>
+      <SortableContext
+        items={todos.map((todo) => todo.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        {todos.length === 0 ? (
+          <Box padding={4}>
+            <Text variant={TextVariant.BodyMd} color={TextColor.TextAlternative}>
+              {emptyState}
+            </Text>
+          </Box>
+        ) : (
+          <Box className="flex flex-col">
+            {todos.map((todo) => (
+              <SortableTodoItem
+                key={todo.id}
+                id={todo.id}
+                text={todo.text}
+                completed={todo.completed}
+                section={todo.section}
+                onToggle={
+                  todo.section === 'today' ? () => onToggle(todo.id) : undefined
+                }
+                onUpdate={(text) => onUpdate(todo.id, text)}
+                onMoveToBacklog={
+                  todo.section === 'today'
+                    ? () => onMoveToBacklog(todo.id)
+                    : undefined
+                }
+                onDelete={() => onDelete(todo.id)}
+              />
+            ))}
+          </Box>
+        )}
+      </SortableContext>
     </Box>
   );
 };
@@ -170,7 +280,7 @@ const Todos: React.FC = () => {
   const toggleTodo = useTodoStore((state) => state.toggleTodo);
   const updateTodo = useTodoStore((state) => state.updateTodo);
   const deleteTodo = useTodoStore((state) => state.deleteTodo);
-  const reorderTodos = useTodoStore((state) => state.reorderTodos);
+  const moveTodo = useTodoStore((state) => state.moveTodo);
   const loadTodos = useTodoStore((state) => state.loadTodos);
   const reloadFromMarkdown = useTodoStore((state) => state.reloadFromMarkdown);
   const generateStandupMarkdown = useTodoStore(
@@ -184,6 +294,11 @@ const Todos: React.FC = () => {
   const [showSaveInstructions, setShowSaveInstructions] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const todayTodos = todos.filter((todo) => todo.section === 'today');
+  const backlogTodos = todos.filter((todo) => todo.section === 'backlog');
+  const completedCount = todayTodos.filter((todo) => todo.completed).length;
+  const incompleteCount = todayTodos.filter((todo) => !todo.completed).length;
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -193,40 +308,53 @@ const Todos: React.FC = () => {
 
   useEffect(() => {
     loadTodos();
-    // Only run once on mount
   }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    if (over && active.id !== over.id) {
-      reorderTodos(active.id as string, over.id as string);
+    if (!over || active.id === over.id) {
+      return;
     }
+
+    const activeTodo = todos.find((todo) => todo.id === active.id);
+    if (!activeTodo) {
+      return;
+    }
+
+    const overId = String(over.id);
+    const overTodo = todos.find((todo) => todo.id === overId);
+    const targetSection: TodoSection =
+      overId === 'today' || overId === 'backlog'
+        ? overId
+        : overTodo?.section ?? activeTodo.section;
+
+    moveTodo(
+      String(active.id),
+      targetSection,
+      overTodo ? String(over.id) : null,
+    );
   };
 
   const convertJiraTickets = (text: string): string => {
-    // Match Jira ticket numbers (e.g., DSYS-468, PROJ-123)
     const ticketPattern = /\b([A-Z]+-\d+)\b/g;
-
-    // Match Jira URLs and extract ticket number
     const urlPattern = /https?:\/\/[^\/]*atlassian\.net\/browse\/([A-Z]+-\d+)/g;
 
     let result = text;
 
-    // First, replace full URLs with markdown links
-    result = result.replace(urlPattern, (match, ticketNumber) => {
+    result = result.replace(urlPattern, (_match, ticketNumber) => {
       return `[${ticketNumber}](https://consensyssoftware.atlassian.net/browse/${ticketNumber})`;
     });
 
-    // Then, replace standalone ticket numbers (that aren't already in markdown links)
     result = result.replace(ticketPattern, (match, ticketNumber) => {
-      // Check if this ticket number is already part of a markdown link
       const beforeMatch = result.substring(0, result.indexOf(match));
       if (
         beforeMatch.endsWith('[') ||
-        beforeMatch.endsWith('(https://consensyssoftware.atlassian.net/browse/')
+        beforeMatch.endsWith(
+          '(https://consensyssoftware.atlassian.net/browse/',
+        )
       ) {
-        return match; // Already part of a link, leave it alone
+        return match;
       }
       return `[${ticketNumber}](https://consensyssoftware.atlassian.net/browse/${ticketNumber})`;
     });
@@ -236,8 +364,7 @@ const Todos: React.FC = () => {
 
   const handleAddTodo = () => {
     if (newTodoText.trim()) {
-      const convertedText = convertJiraTickets(newTodoText.trim());
-      addTodo(convertedText);
+      addTodo(convertJiraTickets(newTodoText.trim()));
       setNewTodoText('');
     }
   };
@@ -250,8 +377,7 @@ const Todos: React.FC = () => {
 
   const handleGenerateStandup = () => {
     setIsGenerating(true);
-    const markdown = generateStandupMarkdown();
-    setStandupMarkdown(markdown);
+    setStandupMarkdown(generateStandupMarkdown());
     setIsGenerating(false);
   };
 
@@ -259,7 +385,6 @@ const Todos: React.FC = () => {
     if (standupMarkdown) {
       saveStandupToFile(standupMarkdown);
       setShowSaveInstructions(true);
-      // Keep the preview visible so user can reference it
     }
   };
 
@@ -268,7 +393,7 @@ const Todos: React.FC = () => {
     try {
       await reloadFromMarkdown();
       setShowSaveInstructions(false);
-      setStandupMarkdown(''); // Clear preview after reload
+      setStandupMarkdown('');
     } finally {
       setIsReloading(false);
     }
@@ -288,7 +413,6 @@ const Todos: React.FC = () => {
 
   return (
     <Box padding={6} className="w-full mx-auto">
-      {/* Header */}
       <Box
         marginBottom={6}
         className="flex items-center justify-between max-w-6xl mx-auto"
@@ -301,7 +425,6 @@ const Todos: React.FC = () => {
           >
             Standup
           </Text>
-          {/* Stats */}
           {todos.length > 0 && (
             <Box gap={2} className="flex">
               <Box
@@ -316,10 +439,9 @@ const Todos: React.FC = () => {
                   variant={TextVariant.HeadingMd}
                   color={TextColor.SuccessDefault}
                 >
-                  {todos.filter((t) => t.completed).length}
+                  {completedCount}
                 </Text>
               </Box>
-
               <Box
                 paddingVertical={1}
                 paddingHorizontal={4}
@@ -332,7 +454,22 @@ const Todos: React.FC = () => {
                   variant={TextVariant.HeadingMd}
                   color={TextColor.WarningDefault}
                 >
-                  {todos.filter((t) => !t.completed).length}
+                  {incompleteCount}
+                </Text>
+              </Box>
+              <Box
+                paddingVertical={1}
+                paddingHorizontal={4}
+                backgroundColor={BoxBackgroundColor.BackgroundAlternative}
+                alignItems={BoxAlignItems.Center}
+                justifyContent={BoxJustifyContent.Center}
+                className="rounded-lg flex"
+              >
+                <Text
+                  variant={TextVariant.HeadingMd}
+                  color={TextColor.TextAlternative}
+                >
+                  {backlogTodos.length}
                 </Text>
               </Box>
             </Box>
@@ -369,7 +506,6 @@ const Todos: React.FC = () => {
         )}
       </Box>
 
-      {/* Save Instructions Banner */}
       {showSaveInstructions && (
         <Box
           marginBottom={4}
@@ -405,11 +541,8 @@ const Todos: React.FC = () => {
         </Box>
       )}
 
-      {/* Split Screen Layout */}
       <Box className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
-        {/* Left Column - Todo List */}
         <Box className="flex flex-col" gap={6}>
-          {/* Add Todo */}
           <Box gap={2} className="flex flex-col sm:flex-row">
             <input
               type="text"
@@ -429,13 +562,12 @@ const Todos: React.FC = () => {
             </Button>
           </Box>
 
-          {/* Todo List */}
-          <Box
-            borderColor={BoxBorderColor.BorderMuted}
-            borderWidth={1}
-            className="rounded-lg"
-          >
-            {todos.length === 0 ? (
+          {todos.length === 0 ? (
+            <Box
+              borderColor={BoxBorderColor.BorderMuted}
+              borderWidth={1}
+              className="rounded-lg"
+            >
               <Box
                 justifyContent={BoxJustifyContent.Center}
                 alignItems={BoxAlignItems.Center}
@@ -454,38 +586,40 @@ const Todos: React.FC = () => {
                   No todos yet. Add your first task above!
                 </Text>
               </Box>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={todos.map((todo) => todo.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <Box className="flex flex-col">
-                    {todos.map((todo) => (
-                      <SortableTodoItem
-                        key={todo.id}
-                        id={todo.id}
-                        text={todo.text}
-                        completed={todo.completed}
-                        onToggle={() => toggleTodo(todo.id)}
-                        onUpdate={(text) => updateTodo(todo.id, text)}
-                        onDelete={() => deleteTodo(todo.id)}
-                      />
-                    ))}
-                  </Box>
-                </SortableContext>
-              </DndContext>
-            )}
-          </Box>
+            </Box>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <Box className="flex flex-col" gap={4}>
+                <TodoSectionList
+                  title="Today"
+                  section="today"
+                  todos={todayTodos}
+                  emptyState="Move something here when you're ready to work on it."
+                  onToggle={toggleTodo}
+                  onUpdate={updateTodo}
+                  onMoveToBacklog={(id) => moveTodo(id, 'backlog')}
+                  onDelete={deleteTodo}
+                />
+                <TodoSectionList
+                  title="Backlog"
+                  section="backlog"
+                  todos={backlogTodos}
+                  emptyState="Drag tasks here to keep them out of today's standup."
+                  onToggle={toggleTodo}
+                  onUpdate={updateTodo}
+                  onMoveToBacklog={(id) => moveTodo(id, 'backlog')}
+                  onDelete={deleteTodo}
+                />
+              </Box>
+            </DndContext>
+          )}
         </Box>
 
-        {/* Right Column - Standup Preview */}
         <Box className="flex flex-col" gap={6}>
-          {/* Actions */}
           <Box gap={2} className="flex flex-col sm:flex-row">
             <ButtonHero
               size={ButtonSize.Lg}
@@ -518,7 +652,6 @@ const Todos: React.FC = () => {
             </Button>
           </Box>
 
-          {/* Markdown Preview */}
           <Box
             borderColor={BoxBorderColor.BorderMuted}
             borderWidth={1}
