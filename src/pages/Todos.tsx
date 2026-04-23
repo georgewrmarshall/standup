@@ -113,8 +113,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
       ref={setNodeRef}
       style={style}
       padding={3}
-      backgroundColor={BoxBackgroundColor.BackgroundDefault}
-      className="flex items-center justify-between group hover:bg-default-hover transition-colors first:rounded-t-lg last:rounded-b-lg"
+      className="flex items-center justify-between group hover:bg-muted active:bg-muted-pressed transition-colors last:rounded-b-lg"
     >
       <Box alignItems={BoxAlignItems.Center} gap={3} className="flex flex-1">
         <div
@@ -220,16 +219,11 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
       ref={setNodeRef}
       borderColor={isOver ? BoxBorderColor.InfoDefault : BoxBorderColor.BorderMuted}
       borderWidth={1}
-      className="rounded-lg overflow-hidden"
+      className="rounded-lg overflow-hidden bg-section"
     >
       <Box
         paddingVertical={3}
         paddingHorizontal={4}
-        backgroundColor={
-          section === 'today'
-            ? BoxBackgroundColor.WarningMuted
-            : BoxBackgroundColor.BackgroundAlternative
-        }
       >
         <Text variant={TextVariant.HeadingSm} color={TextColor.TextDefault}>
           {title}
