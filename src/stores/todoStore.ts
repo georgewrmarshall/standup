@@ -27,6 +27,7 @@ interface TodoStore {
   updateTodo: (id: string, text: string) => void;
   deleteTodo: (id: string) => void;
   clearSection: (section: TodoSection) => void;
+  duplicateToYesterday: (id: string) => void;
   moveTodo: (
     activeId: string,
     targetSection: TodoSection,
@@ -111,6 +112,35 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     saveTodosToStorage(updatedTodos);
   },
 
+  duplicateToYesterday: (id) => {
+    const todos = get().todos;
+    const sourceTodo = todos.find((todo) => todo.id === id);
+
+    if (!sourceTodo || sourceTodo.section !== 'today' || sourceTodo.completed) {
+      return;
+    }
+
+    const duplicateExists = todos.some(
+      (todo) =>
+        todo.section === 'yesterday' &&
+        normalizeTodoText(todo.text) === normalizeTodoText(sourceTodo.text),
+    );
+
+    if (duplicateExists) {
+      return;
+    }
+
+    const duplicatedTodo: Todo = {
+      ...sourceTodo,
+      id: crypto.randomUUID(),
+      section: 'yesterday',
+    };
+
+    const normalizedTodos = normalizeTodoOrder([duplicatedTodo, ...todos]);
+    set({ todos: normalizedTodos });
+    saveTodosToStorage(normalizedTodos);
+  },
+
   moveTodo: (activeId, targetSection, overId = null) => {
     const todos = get().todos;
     const activeIndex = todos.findIndex((todo) => todo.id === activeId);
@@ -175,29 +205,13 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     const yesterday = todos.filter((todo) => todo.section === 'yesterday');
     const today = todos.filter((todo) => todo.section === 'today');
     const backlog = todos.filter((todo) => todo.section === 'backlog');
-    const yesterdayCarryover = today.filter((todo) => !todo.completed);
-    const yesterdayLines = new Map<string, string>();
-
-    yesterday.forEach((todo) => {
-      yesterdayLines.set(
-        normalizeTodoText(todo.text),
-        `- ${todo.text}${todo.completed ? ' ✅' : ' ❌'}`,
-      );
-    });
-
-    yesterdayCarryover.forEach((todo) => {
-      const normalized = normalizeTodoText(todo.text);
-      if (!yesterdayLines.has(normalized)) {
-        yesterdayLines.set(normalized, `- ${todo.text} ❌`);
-      }
-    });
 
     let markdown = `_${displayDate}_\n\n`;
 
     markdown += `Yesterday\n\n`;
-    if (yesterdayLines.size > 0) {
-      yesterdayLines.forEach((line) => {
-        markdown += `${line}\n`;
+    if (yesterday.length > 0) {
+      yesterday.forEach((todo) => {
+        markdown += `- ${todo.text}${todo.completed ? ' ✅' : ' ❌'}\n`;
       });
     } else {
       markdown += `- No tasks\n`;
@@ -406,12 +420,13 @@ const normalizeTodoOrder = (todos: Todo[]): Todo[] => {
 
   return orderedTodos.filter((todo) => {
     const normalizedText = normalizeTodoText(todo.text);
+    const dedupeKey = `${todo.section}:${normalizedText}`;
 
-    if (!normalizedText || seen.has(normalizedText)) {
+    if (!normalizedText || seen.has(dedupeKey)) {
       return false;
     }
 
-    seen.add(normalizedText);
+    seen.add(dedupeKey);
     return true;
   });
 };
@@ -434,7 +449,7 @@ const loadTodosFromLatestStandup = async (
       const taskMap = new Map<string, Todo>();
 
       parsed.today.forEach((task) => {
-        const normalized = normalizeTodoText(task.text);
+        const normalized = `today:${normalizeTodoText(task.text)}`;
         if (!taskMap.has(normalized)) {
           taskMap.set(normalized, {
             id: crypto.randomUUID(),
@@ -448,7 +463,7 @@ const loadTodosFromLatestStandup = async (
       });
 
       parsed.yesterday.forEach((task) => {
-        const normalized = normalizeTodoText(task.text);
+        const normalized = `yesterday:${normalizeTodoText(task.text)}`;
         if (!taskMap.has(normalized)) {
           taskMap.set(normalized, {
             id: crypto.randomUUID(),
@@ -462,7 +477,7 @@ const loadTodosFromLatestStandup = async (
       });
 
       parsed.backlog.forEach((text) => {
-        const normalized = normalizeTodoText(text);
+        const normalized = `backlog:${normalizeTodoText(text)}`;
         if (!taskMap.has(normalized)) {
           taskMap.set(normalized, {
             id: crypto.randomUUID(),

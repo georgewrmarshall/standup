@@ -48,6 +48,7 @@ interface SortableTodoItemProps {
   onToggle?: (isSelected: boolean) => void;
   onUpdate: (text: string) => void;
   onMoveToSection?: (section: TodoSection) => void;
+  onDuplicateToYesterday?: () => void;
   onDelete: () => void;
 }
 
@@ -59,6 +60,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
   onToggle,
   onUpdate,
   onMoveToSection,
+  onDuplicateToYesterday,
   onDelete,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -176,7 +178,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
           <ButtonIcon
             iconName={IconName.CheckBold}
             ariaLabel="Move to yesterday"
-            onClick={() => onMoveToSection?.('yesterday')}
+            onClick={onDuplicateToYesterday ?? (() => onMoveToSection?.('yesterday'))}
             className="opacity-0 group-hover:opacity-100 transition-opacity"
           />
         )}
@@ -215,6 +217,7 @@ interface TodoSectionListProps {
   onToggle: (id: string) => void;
   onUpdate: (id: string, text: string) => void;
   onMoveToSection: (id: string, section: TodoSection) => void;
+  onDuplicateToYesterday: (id: string) => void;
   onDelete: (id: string) => void;
   onClearSection?: () => void;
 }
@@ -227,6 +230,7 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
   onToggle,
   onUpdate,
   onMoveToSection,
+  onDuplicateToYesterday,
   onDelete,
   onClearSection,
 }) => {
@@ -286,6 +290,11 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
                 onMoveToSection={(targetSection) =>
                   onMoveToSection(todo.id, targetSection)
                 }
+                onDuplicateToYesterday={
+                  todo.section === 'today'
+                    ? () => onDuplicateToYesterday(todo.id)
+                    : undefined
+                }
                 onDelete={() => onDelete(todo.id)}
               />
             ))}
@@ -304,6 +313,7 @@ const Todos: React.FC = () => {
   const updateTodo = useTodoStore((state) => state.updateTodo);
   const deleteTodo = useTodoStore((state) => state.deleteTodo);
   const clearSection = useTodoStore((state) => state.clearSection);
+  const duplicateToYesterday = useTodoStore((state) => state.duplicateToYesterday);
   const moveTodo = useTodoStore((state) => state.moveTodo);
   const loadTodos = useTodoStore((state) => state.loadTodos);
   const reloadFromMarkdown = useTodoStore((state) => state.reloadFromMarkdown);
@@ -655,6 +665,7 @@ const Todos: React.FC = () => {
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
                   onMoveToSection={moveTodo}
+                  onDuplicateToYesterday={duplicateToYesterday}
                   onDelete={deleteTodo}
                   onClearSection={() => clearSection('yesterday')}
                 />
@@ -666,6 +677,7 @@ const Todos: React.FC = () => {
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
                   onMoveToSection={moveTodo}
+                  onDuplicateToYesterday={duplicateToYesterday}
                   onDelete={deleteTodo}
                 />
                 <TodoSectionList
@@ -676,6 +688,7 @@ const Todos: React.FC = () => {
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
                   onMoveToSection={moveTodo}
+                  onDuplicateToYesterday={duplicateToYesterday}
                   onDelete={deleteTodo}
                 />
               </Box>
