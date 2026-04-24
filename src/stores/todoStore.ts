@@ -8,7 +8,7 @@ import {
   type ParsedStandup,
 } from '../utils/standupParser';
 
-export type TodoSection = 'today' | 'backlog';
+export type TodoSection = 'yesterday' | 'today' | 'backlog';
 
 export interface Todo {
   id: string;
@@ -26,6 +26,7 @@ interface TodoStore {
   toggleTodo: (id: string) => void;
   updateTodo: (id: string, text: string) => void;
   deleteTodo: (id: string) => void;
+  clearSection: (section: TodoSection) => void;
   moveTodo: (
     activeId: string,
     targetSection: TodoSection,
@@ -37,8 +38,8 @@ interface TodoStore {
   reloadFromMarkdown: () => Promise<void>;
   saveTodos: () => void;
   importFromStandup: (selectedSections: Array<keyof ParsedStandup>) => Promise<void>;
-  getCompleted: () => Todo[];
-  getIncomplete: () => Todo[];
+  getYesterday: () => Todo[];
+  getToday: () => Todo[];
   getBacklog: () => Todo[];
 }
 
@@ -46,10 +47,9 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   todos: [],
   loadedFrom: null,
 
-  getCompleted: () =>
-    get().todos.filter((todo) => todo.section === 'today' && todo.completed),
-  getIncomplete: () =>
-    get().todos.filter((todo) => todo.section === 'today' && !todo.completed),
+  getYesterday: () =>
+    get().todos.filter((todo) => todo.section === 'yesterday'),
+  getToday: () => get().todos.filter((todo) => todo.section === 'today'),
   getBacklog: () =>
     get().todos.filter((todo) => todo.section === 'backlog'),
 
@@ -105,6 +105,12 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     saveTodosToStorage(get().todos);
   },
 
+  clearSection: (section) => {
+    const updatedTodos = get().todos.filter((todo) => todo.section !== section);
+    set({ todos: updatedTodos });
+    saveTodosToStorage(updatedTodos);
+  },
+
   moveTodo: (activeId, targetSection, overId = null) => {
     const todos = get().todos;
     const activeIndex = todos.findIndex((todo) => todo.id === activeId);
@@ -134,6 +140,16 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
 
     if (overIndex !== -1) {
       reorderedTodos.splice(overIndex, 0, movedTodo);
+    } else if (targetSection === 'yesterday') {
+      const firstNonYesterdayIndex = reorderedTodos.findIndex(
+        (todo) => todo.section !== 'yesterday',
+      );
+
+      if (firstNonYesterdayIndex === -1) {
+        reorderedTodos.push(movedTodo);
+      } else {
+        reorderedTodos.splice(firstNonYesterdayIndex, 0, movedTodo);
+      }
     } else if (targetSection === 'today') {
       const firstBacklogIndex = reorderedTodos.findIndex(
         (todo) => todo.section === 'backlog',
@@ -156,32 +172,41 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   generateStandupMarkdown: () => {
     const todos = get().todos;
     const displayDate = getDisplayDate();
-    const todayTodos = todos.filter((todo) => todo.section === 'today');
-    const completed = todayTodos.filter((todo) => todo.completed);
-    const notCompleted = todayTodos.filter((todo) => !todo.completed);
+    const yesterday = todos.filter((todo) => todo.section === 'yesterday');
+    const today = todos.filter((todo) => todo.section === 'today');
     const backlog = todos.filter((todo) => todo.section === 'backlog');
+    const yesterdayCarryover = today.filter((todo) => !todo.completed);
+    const yesterdayLines = new Map<string, string>();
+
+    yesterday.forEach((todo) => {
+      yesterdayLines.set(
+        normalizeTodoText(todo.text),
+        `- ${todo.text}${todo.completed ? ' ✅' : ' ❌'}`,
+      );
+    });
+
+    yesterdayCarryover.forEach((todo) => {
+      const normalized = normalizeTodoText(todo.text);
+      if (!yesterdayLines.has(normalized)) {
+        yesterdayLines.set(normalized, `- ${todo.text} ❌`);
+      }
+    });
 
     let markdown = `_${displayDate}_\n\n`;
 
     markdown += `Yesterday\n\n`;
-    if (completed.length > 0) {
-      completed.forEach((todo) => {
-        markdown += `- ${todo.text} ✅\n`;
+    if (yesterdayLines.size > 0) {
+      yesterdayLines.forEach((line) => {
+        markdown += `${line}\n`;
       });
-    }
-    if (notCompleted.length > 0) {
-      notCompleted.forEach((todo) => {
-        markdown += `- ${todo.text} ❌\n`;
-      });
-    }
-    if (completed.length === 0 && notCompleted.length === 0) {
+    } else {
       markdown += `- No tasks\n`;
     }
     markdown += '\n';
 
     markdown += `Today\n\n`;
-    if (notCompleted.length > 0) {
-      notCompleted.forEach((todo) => {
+    if (today.length > 0) {
+      today.forEach((todo) => {
         markdown += `- ${todo.text}\n`;
       });
     } else {
@@ -269,7 +294,12 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
             importedTasks.push({
               text,
               completed: false,
-              section: section === 'backlog' ? 'backlog' : 'today',
+              section:
+                section === 'backlog'
+                  ? 'backlog'
+                  : section === 'yesterday'
+                    ? 'yesterday'
+                    : 'today',
             });
           });
         } else {
@@ -277,7 +307,8 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
             ...(sectionData as Array<{ text: string; completed: boolean }>).map(
               (task) => ({
                 ...task,
-                section: 'today' as const,
+                section:
+                  section === 'yesterday' ? ('yesterday' as const) : ('today' as const),
               }),
             ),
           );
@@ -351,7 +382,12 @@ const migrateStoredTodos = (todos: unknown): Todo[] => {
         id: storedTodo.id,
         text: storedTodo.text,
         completed: Boolean(storedTodo.completed),
-        section: storedTodo.section === 'backlog' ? 'backlog' : 'today',
+        section:
+          storedTodo.section === 'backlog'
+            ? 'backlog'
+            : storedTodo.section === 'yesterday'
+              ? 'yesterday'
+              : 'today',
         createdAt: storedTodo.createdAt ?? new Date().toISOString(),
         completedAt: storedTodo.completedAt,
       },
@@ -361,8 +397,9 @@ const migrateStoredTodos = (todos: unknown): Todo[] => {
 
 const normalizeTodoOrder = (todos: Todo[]): Todo[] => {
   const orderedTodos = [
-    ...todos.filter((todo) => todo.section === 'today' && !todo.completed),
+    ...todos.filter((todo) => todo.section === 'yesterday'),
     ...todos.filter((todo) => todo.section === 'today' && todo.completed),
+    ...todos.filter((todo) => todo.section === 'today' && !todo.completed),
     ...todos.filter((todo) => todo.section === 'backlog'),
   ];
   const seen = new Set<string>();
@@ -396,17 +433,6 @@ const loadTodosFromLatestStandup = async (
     if (isToday) {
       const taskMap = new Map<string, Todo>();
 
-      parsed.yesterday.forEach((task) => {
-        taskMap.set(normalizeTodoText(task.text), {
-          id: crypto.randomUUID(),
-          text: task.text,
-          completed: task.completed,
-          section: 'today',
-          createdAt: new Date().toISOString(),
-          ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
-        });
-      });
-
       parsed.today.forEach((task) => {
         const normalized = normalizeTodoText(task.text);
         if (!taskMap.has(normalized)) {
@@ -415,6 +441,20 @@ const loadTodosFromLatestStandup = async (
             text: task.text,
             completed: task.completed,
             section: 'today',
+            createdAt: new Date().toISOString(),
+            ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
+          });
+        }
+      });
+
+      parsed.yesterday.forEach((task) => {
+        const normalized = normalizeTodoText(task.text);
+        if (!taskMap.has(normalized)) {
+          taskMap.set(normalized, {
+            id: crypto.randomUUID(),
+            text: task.text,
+            completed: task.completed,
+            section: 'yesterday',
             createdAt: new Date().toISOString(),
             ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
           });
@@ -443,23 +483,12 @@ const loadTodosFromLatestStandup = async (
 
     const todos: Todo[] = [];
 
-    parsed.yesterday.forEach((task) => {
-      todos.push({
-        id: crypto.randomUUID(),
-        text: task.text,
-        completed: task.completed,
-        section: 'today',
-        createdAt: new Date().toISOString(),
-        ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
-      });
-    });
-
     parsed.today.forEach((task) => {
       todos.push({
         id: crypto.randomUUID(),
         text: task.text,
         completed: task.completed,
-        section: 'today',
+        section: 'yesterday',
         createdAt: new Date().toISOString(),
         ...(task.completed ? { completedAt: new Date().toISOString() } : {}),
       });

@@ -47,7 +47,7 @@ interface SortableTodoItemProps {
   section: TodoSection;
   onToggle?: (isSelected: boolean) => void;
   onUpdate: (text: string) => void;
-  onMoveToBacklog?: () => void;
+  onMoveToSection?: (section: TodoSection) => void;
   onDelete: () => void;
 }
 
@@ -58,7 +58,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
   section,
   onToggle,
   onUpdate,
-  onMoveToBacklog,
+  onMoveToSection,
   onDelete,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -103,7 +103,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
   };
 
   const handleTextClick = () => {
-    if (!(section === 'today' && completed)) {
+    if (!(section === 'yesterday' && completed)) {
       setIsEditing(true);
     }
   };
@@ -113,8 +113,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
       ref={setNodeRef}
       style={style}
       padding={3}
-      backgroundColor={BoxBackgroundColor.BackgroundDefault}
-      className="flex items-center justify-between group hover:bg-default-hover transition-colors first:rounded-t-lg last:rounded-b-lg"
+      className="flex items-center justify-between group hover:bg-muted active:bg-muted-pressed transition-colors last:rounded-b-lg"
     >
       <Box alignItems={BoxAlignItems.Center} gap={3} className="flex flex-1">
         <div
@@ -128,13 +127,7 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
             className="text-text-alternative"
           />
         </div>
-        {section === 'today' ? (
-          <Checkbox
-            id={text}
-            isSelected={completed}
-            onChange={() => onToggle?.(!completed)}
-          />
-        ) : (
+        {section === 'backlog' ? (
           <Box
             alignItems={BoxAlignItems.Center}
             justifyContent={BoxJustifyContent.Center}
@@ -146,6 +139,12 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
               className="text-text-alternative"
             />
           </Box>
+        ) : (
+          <Checkbox
+            id={text}
+            isSelected={completed}
+            onChange={() => onToggle?.(!completed)}
+          />
         )}
         {isEditing ? (
           <input
@@ -163,21 +162,37 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
               text={text}
               variant={TextVariant.BodyMd}
               color={
-                section === 'today' && completed
+                section === 'yesterday' && completed
                   ? TextColor.TextAlternative
                   : TextColor.TextDefault
               }
-              className={section === 'today' && completed ? 'line-through' : ''}
+              className={section === 'yesterday' && completed ? 'line-through' : ''}
             />
           </div>
         )}
       </Box>
       <Box className="flex items-center">
-        {section === 'today' && (
+        {section !== 'yesterday' && (
+          <ButtonIcon
+            iconName={IconName.CheckBold}
+            ariaLabel="Move to yesterday"
+            onClick={() => onMoveToSection?.('yesterday')}
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+          />
+        )}
+        {section !== 'today' && (
+          <ButtonIcon
+            iconName={IconName.Edit}
+            ariaLabel="Move to today"
+            onClick={() => onMoveToSection?.('today')}
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+          />
+        )}
+        {section !== 'backlog' && (
           <ButtonIcon
             iconName={IconName.Bookmark}
             ariaLabel="Move to backlog"
-            onClick={onMoveToBacklog}
+            onClick={() => onMoveToSection?.('backlog')}
             className="opacity-0 group-hover:opacity-100 transition-opacity"
           />
         )}
@@ -199,8 +214,9 @@ interface TodoSectionListProps {
   emptyState: string;
   onToggle: (id: string) => void;
   onUpdate: (id: string, text: string) => void;
-  onMoveToBacklog: (id: string) => void;
+  onMoveToSection: (id: string, section: TodoSection) => void;
   onDelete: (id: string) => void;
+  onClearSection?: () => void;
 }
 
 const TodoSectionList: React.FC<TodoSectionListProps> = ({
@@ -210,8 +226,9 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
   emptyState,
   onToggle,
   onUpdate,
-  onMoveToBacklog,
+  onMoveToSection,
   onDelete,
+  onClearSection,
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id: section });
 
@@ -220,20 +237,27 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
       ref={setNodeRef}
       borderColor={isOver ? BoxBorderColor.InfoDefault : BoxBorderColor.BorderMuted}
       borderWidth={1}
-      className="rounded-lg overflow-hidden"
+      className="rounded-lg overflow-hidden bg-section"
     >
       <Box
         paddingVertical={3}
         paddingHorizontal={4}
-        backgroundColor={
-          section === 'today'
-            ? BoxBackgroundColor.WarningMuted
-            : BoxBackgroundColor.BackgroundAlternative
-        }
+        alignItems={BoxAlignItems.Center}
+        justifyContent={BoxJustifyContent.SpaceBetween}
+        className="flex"
       >
         <Text variant={TextVariant.HeadingSm} color={TextColor.TextDefault}>
           {title}
         </Text>
+        {section === 'yesterday' && (
+          <Button
+            variant={ButtonVariant.Tertiary}
+            size={ButtonSize.Sm}
+            onClick={onClearSection}
+          >
+            Clear
+          </Button>
+        )}
       </Box>
       <SortableContext
         items={todos.map((todo) => todo.id)}
@@ -255,13 +279,11 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
                 completed={todo.completed}
                 section={todo.section}
                 onToggle={
-                  todo.section === 'today' ? () => onToggle(todo.id) : undefined
+                  todo.section !== 'backlog' ? () => onToggle(todo.id) : undefined
                 }
                 onUpdate={(text) => onUpdate(todo.id, text)}
-                onMoveToBacklog={
-                  todo.section === 'today'
-                    ? () => onMoveToBacklog(todo.id)
-                    : undefined
+                onMoveToSection={(targetSection) =>
+                  onMoveToSection(todo.id, targetSection)
                 }
                 onDelete={() => onDelete(todo.id)}
               />
@@ -280,6 +302,7 @@ const Todos: React.FC = () => {
   const toggleTodo = useTodoStore((state) => state.toggleTodo);
   const updateTodo = useTodoStore((state) => state.updateTodo);
   const deleteTodo = useTodoStore((state) => state.deleteTodo);
+  const clearSection = useTodoStore((state) => state.clearSection);
   const moveTodo = useTodoStore((state) => state.moveTodo);
   const loadTodos = useTodoStore((state) => state.loadTodos);
   const reloadFromMarkdown = useTodoStore((state) => state.reloadFromMarkdown);
@@ -293,11 +316,11 @@ const Todos: React.FC = () => {
   const [isReloading, setIsReloading] = useState(false);
   const [showSaveInstructions, setShowSaveInstructions] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
+  const yesterdayTodos = todos.filter((todo) => todo.section === 'yesterday');
   const todayTodos = todos.filter((todo) => todo.section === 'today');
   const backlogTodos = todos.filter((todo) => todo.section === 'backlog');
-  const completedCount = todayTodos.filter((todo) => todo.completed).length;
-  const incompleteCount = todayTodos.filter((todo) => !todo.completed).length;
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -308,6 +331,14 @@ const Todos: React.FC = () => {
 
   useEffect(() => {
     loadTodos();
+  }, []);
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem('standup-theme');
+    const shouldUseDark = storedTheme === 'dark';
+
+    document.documentElement.classList.toggle('dark', shouldUseDark);
+    setIsDarkMode(shouldUseDark);
   }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -325,7 +356,7 @@ const Todos: React.FC = () => {
     const overId = String(over.id);
     const overTodo = todos.find((todo) => todo.id === overId);
     const targetSection: TodoSection =
-      overId === 'today' || overId === 'backlog'
+      overId === 'yesterday' || overId === 'today' || overId === 'backlog'
         ? overId
         : overTodo?.section ?? activeTodo.section;
 
@@ -338,7 +369,7 @@ const Todos: React.FC = () => {
 
   const convertJiraTickets = (text: string): string => {
     const ticketPattern = /\b([A-Z]+-\d+)\b/g;
-    const urlPattern = /https?:\/\/[^\/]*atlassian\.net\/browse\/([A-Z]+-\d+)/g;
+    const urlPattern = /https?:\/\/[^/]*atlassian\.net\/browse\/([A-Z]+-\d+)/g;
 
     let result = text;
 
@@ -411,13 +442,20 @@ const Todos: React.FC = () => {
     }
   };
 
+  const handleToggleDarkMode = () => {
+    const nextIsDark = !isDarkMode;
+    setIsDarkMode(nextIsDark);
+    document.documentElement.classList.toggle('dark', nextIsDark);
+    localStorage.setItem('standup-theme', nextIsDark ? 'dark' : 'light');
+  };
+
   return (
     <Box padding={6} className="w-full mx-auto">
       <Box
         marginBottom={6}
-        className="flex items-center justify-between max-w-6xl mx-auto"
+        className="flex flex-wrap items-start justify-between gap-4 max-w-6xl mx-auto"
       >
-        <Box className="flex items-center" gap={4}>
+        <Box className="flex flex-wrap items-center" gap={4}>
           <Text
             variant={TextVariant.HeadingLg}
             color={TextColor.TextDefault}
@@ -439,7 +477,7 @@ const Todos: React.FC = () => {
                   variant={TextVariant.HeadingMd}
                   color={TextColor.SuccessDefault}
                 >
-                  {completedCount}
+                  {yesterdayTodos.length}
                 </Text>
               </Box>
               <Box
@@ -454,7 +492,7 @@ const Todos: React.FC = () => {
                   variant={TextVariant.HeadingMd}
                   color={TextColor.WarningDefault}
                 >
-                  {incompleteCount}
+                  {todayTodos.length}
                 </Text>
               </Box>
               <Box
@@ -475,35 +513,49 @@ const Todos: React.FC = () => {
             </Box>
           )}
         </Box>
-        {loadedFrom && (
-          <Link
-            to={`/${loadedFrom.filename.replace('.md', '')}`}
-            className="no-underline"
-          >
-            <Box
-              paddingVertical={1}
-              paddingHorizontal={3}
-              backgroundColor={
-                loadedFrom.isToday
-                  ? BoxBackgroundColor.InfoMuted
-                  : BoxBackgroundColor.BackgroundAlternative
-              }
-              borderColor={
-                loadedFrom.isToday
-                  ? BoxBorderColor.InfoDefault
-                  : BoxBorderColor.BorderMuted
-              }
-              borderWidth={1}
-              className="rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+        <Box
+          alignItems={BoxAlignItems.Center}
+          className="flex flex-wrap items-center justify-end gap-3 w-full sm:w-auto sm:flex-nowrap sm:flex-shrink-0"
+        >
+          {loadedFrom && (
+            <Link
+              to={`/${loadedFrom.filename.replace('.md', '')}`}
+              className="no-underline max-w-full"
             >
-              <Text variant={TextVariant.BodySm} color={TextColor.TextDefault}>
-                {loadedFrom.isToday ? '📝 ' : '📅 '}
-                {loadedFrom.filename}
-                {loadedFrom.isToday && ' (deduplicated)'}
-              </Text>
-            </Box>
-          </Link>
-        )}
+              <Box
+                paddingVertical={1}
+                paddingHorizontal={3}
+                backgroundColor={
+                  loadedFrom.isToday
+                    ? BoxBackgroundColor.InfoMuted
+                    : BoxBackgroundColor.BackgroundAlternative
+                }
+                borderColor={
+                  loadedFrom.isToday
+                    ? BoxBorderColor.InfoDefault
+                    : BoxBorderColor.BorderMuted
+                }
+                borderWidth={1}
+                className="rounded-md cursor-pointer hover:opacity-80 transition-opacity max-w-full"
+              >
+                <Text
+                  variant={TextVariant.BodySm}
+                  color={TextColor.TextDefault}
+                  className="whitespace-nowrap"
+                >
+                  {loadedFrom.isToday ? '📝 ' : '📅 '}
+                  {loadedFrom.filename}
+                  {loadedFrom.isToday && ' (deduplicated)'}
+                </Text>
+              </Box>
+            </Link>
+          )}
+          <ButtonIcon
+            iconName={isDarkMode ? IconName.Light : IconName.Dark}
+            ariaLabel={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={handleToggleDarkMode}
+          />
+        </Box>
       </Box>
 
       {showSaveInstructions && (
@@ -595,13 +647,24 @@ const Todos: React.FC = () => {
             >
               <Box className="flex flex-col" gap={4}>
                 <TodoSectionList
+                  title="Yesterday"
+                  section="yesterday"
+                  todos={yesterdayTodos}
+                  emptyState="Drag completed work here so it lands only in yesterday's update."
+                  onToggle={toggleTodo}
+                  onUpdate={updateTodo}
+                  onMoveToSection={moveTodo}
+                  onDelete={deleteTodo}
+                  onClearSection={() => clearSection('yesterday')}
+                />
+                <TodoSectionList
                   title="Today"
                   section="today"
                   todos={todayTodos}
                   emptyState="Move something here when you're ready to work on it."
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
-                  onMoveToBacklog={(id) => moveTodo(id, 'backlog')}
+                  onMoveToSection={moveTodo}
                   onDelete={deleteTodo}
                 />
                 <TodoSectionList
@@ -611,7 +674,7 @@ const Todos: React.FC = () => {
                   emptyState="Drag tasks here to keep them out of today's standup."
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
-                  onMoveToBacklog={(id) => moveTodo(id, 'backlog')}
+                  onMoveToSection={moveTodo}
                   onDelete={deleteTodo}
                 />
               </Box>
