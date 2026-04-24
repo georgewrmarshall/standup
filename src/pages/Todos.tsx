@@ -254,6 +254,7 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
             variant={ButtonVariant.Tertiary}
             size={ButtonSize.Sm}
             onClick={onClearSection}
+            className="ml-auto"
           >
             Clear
           </Button>
