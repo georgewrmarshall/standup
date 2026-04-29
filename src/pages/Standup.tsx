@@ -207,9 +207,13 @@ export const Standup: React.FC = () => {
           padding={4}
           className="rounded-lg overflow-auto"
         >
-          <pre className="font-mono text-sm text-default whitespace-pre-wrap">
-            <code>{markdownContent}</code>
-          </pre>
+          <Text
+            variant={TextVariant.BodyMd}
+            color={TextColor.TextDefault}
+            className="block font-mono whitespace-pre-wrap"
+          >
+            {markdownContent}
+          </Text>
         </Box>
       </Box>
     </Box>

@@ -114,9 +114,10 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
 
   duplicateToYesterday: (id) => {
     const todos = get().todos;
-    const sourceTodo = todos.find((todo) => todo.id === id);
+    const sourceTodoIndex = todos.findIndex((todo) => todo.id === id);
+    const sourceTodo = sourceTodoIndex === -1 ? undefined : todos[sourceTodoIndex];
 
-    if (!sourceTodo || sourceTodo.section !== 'today' || sourceTodo.completed) {
+    if (!sourceTodo || sourceTodo.section !== 'today') {
       return;
     }
 
@@ -127,6 +128,27 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     );
 
     if (duplicateExists) {
+      if (sourceTodo.completed) {
+        const updatedTodos = normalizeTodoOrder(
+          todos.filter((todo) => todo.id !== sourceTodo.id),
+        );
+        set({ todos: updatedTodos });
+        saveTodosToStorage(updatedTodos);
+      }
+      return;
+    }
+
+    if (sourceTodo.completed) {
+      const updatedTodos = [...todos];
+      updatedTodos.splice(sourceTodoIndex, 1);
+      updatedTodos.unshift({
+        ...sourceTodo,
+        section: 'yesterday',
+      });
+
+      const normalizedTodos = normalizeTodoOrder(updatedTodos);
+      set({ todos: normalizedTodos });
+      saveTodosToStorage(normalizedTodos);
       return;
     }
 

@@ -486,7 +486,7 @@ const Todos: React.FC = () => {
               >
                 <Text
                   variant={TextVariant.HeadingMd}
-                  color={TextColor.SuccessDefault}
+                  color={TextColor.TextDefault}
                 >
                   {yesterdayTodos.length}
                 </Text>
@@ -501,7 +501,7 @@ const Todos: React.FC = () => {
               >
                 <Text
                   variant={TextVariant.HeadingMd}
-                  color={TextColor.WarningDefault}
+                  color={TextColor.TextDefault}
                 >
                   {todayTodos.length}
                 </Text>
@@ -582,16 +582,20 @@ const Todos: React.FC = () => {
             <Box gap={2} className="flex-1">
               <Text
                 variant={TextVariant.BodyMd}
-                color={TextColor.InfoDefault}
+                color={TextColor.TextDefault}
                 className="font-bold"
               >
                 File Downloaded!
               </Text>
               <Text variant={TextVariant.BodyMd} color={TextColor.TextDefault}>
                 Save the downloaded file to{' '}
-                <code className="px-1 py-0.5 bg-default rounded text-sm">
+                <Text
+                  variant={TextVariant.BodyMd}
+                  color={TextColor.TextDefault}
+                  className="inline-block px-1 py-0.5 bg-default rounded text-sm font-mono"
+                >
                   public/standups/
-                </code>{' '}
+                </Text>{' '}
                 directory, then click "Reload from Markdown" to sync.
               </Text>
             </Box>
@@ -746,9 +750,13 @@ const Todos: React.FC = () => {
               </Box>
             )}
             {standupMarkdown ? (
-              <pre className="font-mono text-sm text-default whitespace-pre-wrap">
-                <code>{standupMarkdown}</code>
-              </pre>
+              <Text
+                variant={TextVariant.BodyMd}
+                color={TextColor.TextDefault}
+                className="block font-mono whitespace-pre-wrap pr-10"
+              >
+                {standupMarkdown}
+              </Text>
             ) : (
               <Box
                 className="flex items-center justify-center"
