@@ -431,9 +431,10 @@ const migrateStoredTodos = (todos: unknown): Todo[] => {
   });
 };
 
-const normalizeTodoOrder = (todos: Todo[]): Todo[] => {
+export const normalizeTodoOrder = (todos: Todo[]): Todo[] => {
   const orderedTodos = [
-    ...todos.filter((todo) => todo.section === 'yesterday'),
+    ...todos.filter((todo) => todo.section === 'yesterday' && todo.completed),
+    ...todos.filter((todo) => todo.section === 'yesterday' && !todo.completed),
     ...todos.filter((todo) => todo.section === 'today' && todo.completed),
     ...todos.filter((todo) => todo.section === 'today' && !todo.completed),
     ...todos.filter((todo) => todo.section === 'backlog'),
