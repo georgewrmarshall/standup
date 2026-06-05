@@ -705,13 +705,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@metamask/design-system-tailwind-preset@npm:^0.6.1":
-  version: 0.6.1
-  resolution: "@metamask/design-system-tailwind-preset@npm:0.6.1"
+"@metamask/design-system-tailwind-preset@npm:^0.9.0":
+  version: 0.9.0
+  resolution: "@metamask/design-system-tailwind-preset@npm:0.9.0"
   peerDependencies:
     "@metamask/design-tokens": ^8.0.0
     tailwindcss: ^3.0.0
-  checksum: 10c0/be9dcab0d3d00dd8f1d758d54496fa614f9dea1fc0455280a20838d0746261a125d515f07a04765578c7f8aaae45224b8f1d2289abe605ad0aa9928257545f72
+  checksum: 10c0/5bb2d74655b5714d9d3c2a2c76d2cf0734c22260f68e1d02b1a02a48b276ef58b33459261d60eca65ac5257ba1a14f6038122ab3f8d52e15cdb41d6a3b007161
   languageName: node
   linkType: hard
 
@@ -4040,7 +4040,7 @@ __metadata:
     "@dnd-kit/utilities": "npm:^3.2.2"
     "@eslint/js": "npm:^10.0.1"
     "@metamask/design-system-react": "npm:^0.18.0"
-    "@metamask/design-system-tailwind-preset": "npm:^0.6.1"
+    "@metamask/design-system-tailwind-preset": "npm:^0.9.0"
     "@metamask/design-tokens": "npm:^8.3.0"
     "@metamask/utils": "npm:^11.10.0"
     "@types/node": "npm:^18.18"
