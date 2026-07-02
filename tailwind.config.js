@@ -7,6 +7,8 @@ module.exports = {
     './src/**/*.{js,jsx,ts,tsx}',
     './index.html',
     './node_modules/@metamask/design-system-react/dist/**/*.{js,mjs}',
+    // Semantic color/typography class strings live in shared, not react dist
+    './node_modules/@metamask/design-system-shared/dist/**/*.{js,mjs,cjs}',
   ],
   theme: {
     // Keep essential semantic colors, remove default palette colors.

@@ -18,7 +18,11 @@ import {
   IconSize,
   Text,
   TextColor,
+  TextField,
+  TextFieldSize,
   TextVariant,
+  ToastSeverity,
+  toast,
 } from '@metamask/design-system-react';
 import {
   DndContext,
@@ -67,8 +71,14 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
   const [editText, setEditText] = useState(text);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -149,14 +159,17 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
           />
         )}
         {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
+          <TextField
+            autoFocus
+            size={TextFieldSize.Lg}
+            inputRef={inputRef}
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className="flex-1 px-2 py-1 border border-primary rounded-md bg-default text-default"
+            inputProps={{
+              onKeyDown: handleKeyDown,
+            }}
+            className="flex-1 w-full"
           />
         ) : (
           <div onClick={handleTextClick} className="flex-1 cursor-pointer">
@@ -168,7 +181,9 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
                   ? TextColor.TextAlternative
                   : TextColor.TextDefault
               }
-              className={section === 'yesterday' && completed ? 'line-through' : ''}
+              className={
+                section === 'yesterday' && completed ? 'line-through' : ''
+              }
             />
           </div>
         )}
@@ -178,7 +193,9 @@ const SortableTodoItem: React.FC<SortableTodoItemProps> = ({
           <ButtonIcon
             iconName={IconName.CheckBold}
             ariaLabel="Move to yesterday"
-            onClick={onDuplicateToYesterday ?? (() => onMoveToSection?.('yesterday'))}
+            onClick={
+              onDuplicateToYesterday ?? (() => onMoveToSection?.('yesterday'))
+            }
             className="opacity-0 group-hover:opacity-100 transition-opacity"
           />
         )}
@@ -239,7 +256,9 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
   return (
     <Box
       ref={setNodeRef}
-      borderColor={isOver ? BoxBorderColor.InfoDefault : BoxBorderColor.BorderMuted}
+      borderColor={
+        isOver ? BoxBorderColor.InfoDefault : BoxBorderColor.BorderMuted
+      }
       borderWidth={1}
       className="rounded-lg overflow-hidden bg-section"
     >
@@ -247,7 +266,7 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
         paddingVertical={3}
         paddingHorizontal={4}
         alignItems={BoxAlignItems.Center}
-        justifyContent={BoxJustifyContent.SpaceBetween}
+        justifyContent={BoxJustifyContent.Between}
         className="flex"
       >
         <Text variant={TextVariant.HeadingSm} color={TextColor.TextDefault}>
@@ -270,7 +289,10 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
       >
         {todos.length === 0 ? (
           <Box padding={4}>
-            <Text variant={TextVariant.BodyMd} color={TextColor.TextAlternative}>
+            <Text
+              variant={TextVariant.BodyMd}
+              color={TextColor.TextAlternative}
+            >
               {emptyState}
             </Text>
           </Box>
@@ -284,7 +306,9 @@ const TodoSectionList: React.FC<TodoSectionListProps> = ({
                 completed={todo.completed}
                 section={todo.section}
                 onToggle={
-                  todo.section !== 'backlog' ? () => onToggle(todo.id) : undefined
+                  todo.section !== 'backlog'
+                    ? () => onToggle(todo.id)
+                    : undefined
                 }
                 onUpdate={(text) => onUpdate(todo.id, text)}
                 onMoveToSection={(targetSection) =>
@@ -313,7 +337,9 @@ const Todos: React.FC = () => {
   const updateTodo = useTodoStore((state) => state.updateTodo);
   const deleteTodo = useTodoStore((state) => state.deleteTodo);
   const clearSection = useTodoStore((state) => state.clearSection);
-  const duplicateToYesterday = useTodoStore((state) => state.duplicateToYesterday);
+  const duplicateToYesterday = useTodoStore(
+    (state) => state.duplicateToYesterday,
+  );
   const moveTodo = useTodoStore((state) => state.moveTodo);
   const loadTodos = useTodoStore((state) => state.loadTodos);
   const reloadFromMarkdown = useTodoStore((state) => state.reloadFromMarkdown);
@@ -325,7 +351,6 @@ const Todos: React.FC = () => {
   const [standupMarkdown, setStandupMarkdown] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
-  const [showSaveInstructions, setShowSaveInstructions] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -369,9 +394,9 @@ const Todos: React.FC = () => {
     const targetSection: TodoSection =
       overId === 'yesterday' || overId === 'today' || overId === 'backlog'
         ? overId
-        : overTodo?.section ?? activeTodo.section;
+        : (overTodo?.section ?? activeTodo.section);
 
-    moveTodo(
+    handleMoveTodo(
       String(active.id),
       targetSection,
       overTodo ? String(over.id) : null,
@@ -392,9 +417,7 @@ const Todos: React.FC = () => {
       const beforeMatch = result.substring(0, result.indexOf(match));
       if (
         beforeMatch.endsWith('[') ||
-        beforeMatch.endsWith(
-          '(https://consensyssoftware.atlassian.net/browse/',
-        )
+        beforeMatch.endsWith('(https://consensyssoftware.atlassian.net/browse/')
       ) {
         return match;
       }
@@ -408,12 +431,46 @@ const Todos: React.FC = () => {
     if (newTodoText.trim()) {
       addTodo(convertJiraTickets(newTodoText.trim()));
       setNewTodoText('');
+      toast({
+        title: 'Todo added',
+        severity: ToastSeverity.Success,
+      });
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleAddTodoKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleAddTodo();
+    }
+  };
+
+  const handleDeleteTodo = (id: string) => {
+    deleteTodo(id);
+    toast({
+      title: 'Item removed',
+      severity: ToastSeverity.Danger,
+    });
+  };
+
+  const handleMoveTodo = (
+    id: string,
+    targetSection: TodoSection,
+    overId?: string | null,
+  ) => {
+    const todo = todos.find((item) => item.id === id);
+    if (!todo) {
+      return;
+    }
+
+    const movedToBacklog =
+      todo.section !== 'backlog' && targetSection === 'backlog';
+    moveTodo(id, targetSection, overId ?? null);
+
+    if (movedToBacklog) {
+      toast({
+        title: 'Moved to backlog',
+        severity: ToastSeverity.Success,
+      });
     }
   };
 
@@ -421,12 +478,21 @@ const Todos: React.FC = () => {
     setIsGenerating(true);
     setStandupMarkdown(generateStandupMarkdown());
     setIsGenerating(false);
+    toast({
+      title: 'Standup generated',
+      severity: ToastSeverity.Success,
+    });
   };
 
   const handleSaveStandup = () => {
     if (standupMarkdown) {
       saveStandupToFile(standupMarkdown);
-      setShowSaveInstructions(true);
+      toast({
+        title: 'Standup saved',
+        description:
+          'Save the downloaded file to public/standups/, then click Load standup to sync.',
+        severity: ToastSeverity.Success,
+      });
     }
   };
 
@@ -434,8 +500,21 @@ const Todos: React.FC = () => {
     setIsReloading(true);
     try {
       await reloadFromMarkdown();
-      setShowSaveInstructions(false);
       setStandupMarkdown('');
+
+      const { loadedFrom: reloadedFrom } = useTodoStore.getState();
+      if (reloadedFrom) {
+        toast({
+          title: 'Standup loaded',
+          description: reloadedFrom.filename,
+          severity: ToastSeverity.Success,
+        });
+      } else {
+        toast({
+          title: 'No standup file found',
+          severity: ToastSeverity.Warning,
+        });
+      }
     } finally {
       setIsReloading(false);
     }
@@ -447,8 +526,16 @@ const Todos: React.FC = () => {
         await navigator.clipboard.writeText(standupMarkdown);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+        toast({
+          title: 'Copied to clipboard',
+          severity: ToastSeverity.Success,
+        });
       } catch (err) {
         console.error('Failed to copy:', err);
+        toast({
+          title: 'Failed to copy',
+          severity: ToastSeverity.Danger,
+        });
       }
     }
   };
@@ -529,95 +616,46 @@ const Todos: React.FC = () => {
           className="flex flex-wrap items-center justify-end gap-3 w-full sm:w-auto sm:flex-nowrap sm:flex-shrink-0"
         >
           {loadedFrom && (
-            <Link
-              to={`/${loadedFrom.filename.replace('.md', '')}`}
-              className="no-underline max-w-full"
+            <Button
+              variant={ButtonVariant.Tertiary}
+              size={ButtonSize.Sm}
+              asChild
+              startIconName={
+                loadedFrom.isToday ? IconName.File : IconName.Calendar
+              }
+              className="max-w-full"
             >
-              <Box
-                paddingVertical={1}
-                paddingHorizontal={3}
-                backgroundColor={
-                  loadedFrom.isToday
-                    ? BoxBackgroundColor.InfoMuted
-                    : BoxBackgroundColor.BackgroundAlternative
-                }
-                borderColor={
-                  loadedFrom.isToday
-                    ? BoxBorderColor.InfoDefault
-                    : BoxBorderColor.BorderMuted
-                }
-                borderWidth={1}
-                className="rounded-md cursor-pointer hover:opacity-80 transition-opacity max-w-full"
+              <Link
+                to={`/${loadedFrom.filename.replace('.md', '')}`}
+                className="no-underline max-w-full"
               >
-                <Text
-                  variant={TextVariant.BodySm}
-                  color={TextColor.TextDefault}
-                  className="whitespace-nowrap"
-                >
-                  {loadedFrom.isToday ? '📝 ' : '📅 '}
-                  {loadedFrom.filename}
-                  {loadedFrom.isToday && ' (deduplicated)'}
-                </Text>
-              </Box>
-            </Link>
+                {loadedFrom.filename}
+                {loadedFrom.isToday && ' (deduplicated)'}
+              </Link>
+            </Button>
           )}
           <ButtonIcon
             iconName={isDarkMode ? IconName.Light : IconName.Dark}
-            ariaLabel={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            ariaLabel={
+              isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'
+            }
             onClick={handleToggleDarkMode}
           />
         </Box>
       </Box>
 
-      {showSaveInstructions && (
-        <Box
-          marginBottom={4}
-          padding={4}
-          backgroundColor={BoxBackgroundColor.InfoMuted}
-          borderColor={BoxBorderColor.InfoDefault}
-          borderWidth={1}
-          className="rounded-lg max-w-6xl mx-auto"
-        >
-          <Box className="flex items-start justify-between">
-            <Box gap={2} className="flex-1">
-              <Text
-                variant={TextVariant.BodyMd}
-                color={TextColor.TextDefault}
-                className="font-bold"
-              >
-                File Downloaded!
-              </Text>
-              <Text variant={TextVariant.BodyMd} color={TextColor.TextDefault}>
-                Save the downloaded file to{' '}
-                <Text
-                  variant={TextVariant.BodyMd}
-                  color={TextColor.TextDefault}
-                  className="inline-block px-1 py-0.5 bg-default rounded text-sm font-mono"
-                >
-                  public/standups/
-                </Text>{' '}
-                directory, then click "Reload from Markdown" to sync.
-              </Text>
-            </Box>
-            <ButtonIcon
-              iconName={IconName.Close}
-              ariaLabel="Close"
-              onClick={() => setShowSaveInstructions(false)}
-            />
-          </Box>
-        </Box>
-      )}
-
       <Box className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
         <Box className="flex flex-col" gap={6}>
           <Box gap={2} className="flex flex-col sm:flex-row">
-            <input
-              type="text"
+            <TextField
+              size={TextFieldSize.Lg}
               placeholder="Add a new todo..."
               value={newTodoText}
               onChange={(e) => setNewTodoText(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1 px-4 py-2 border border-muted rounded-md bg-default text-default"
+              inputProps={{
+                onKeyDown: handleAddTodoKeyDown,
+              }}
+              className="flex-1 w-full"
             />
             <Button
               variant={ButtonVariant.Secondary}
@@ -668,9 +706,9 @@ const Todos: React.FC = () => {
                   emptyState="Drag completed work here so it lands only in yesterday's update."
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
-                  onMoveToSection={moveTodo}
+                  onMoveToSection={handleMoveTodo}
                   onDuplicateToYesterday={duplicateToYesterday}
-                  onDelete={deleteTodo}
+                  onDelete={handleDeleteTodo}
                   onClearSection={() => clearSection('yesterday')}
                 />
                 <TodoSectionList
@@ -680,9 +718,9 @@ const Todos: React.FC = () => {
                   emptyState="Move something here when you're ready to work on it."
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
-                  onMoveToSection={moveTodo}
+                  onMoveToSection={handleMoveTodo}
                   onDuplicateToYesterday={duplicateToYesterday}
-                  onDelete={deleteTodo}
+                  onDelete={handleDeleteTodo}
                 />
                 <TodoSectionList
                   title="Backlog"
@@ -691,9 +729,9 @@ const Todos: React.FC = () => {
                   emptyState="Drag tasks here to keep them out of today's standup."
                   onToggle={toggleTodo}
                   onUpdate={updateTodo}
-                  onMoveToSection={moveTodo}
+                  onMoveToSection={handleMoveTodo}
                   onDuplicateToYesterday={duplicateToYesterday}
-                  onDelete={deleteTodo}
+                  onDelete={handleDeleteTodo}
                 />
               </Box>
             </DndContext>
