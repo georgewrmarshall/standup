@@ -720,12 +720,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@metamask/design-system-react@npm:^0.30.0":
-  version: 0.30.0
-  resolution: "@metamask/design-system-react@npm:0.30.0"
+"@metamask/design-system-react@npm:^0.33.0":
+  version: 0.33.0
+  resolution: "@metamask/design-system-react@npm:0.33.0"
   dependencies:
     "@floating-ui/react-dom": "npm:^2.1.2"
-    "@metamask/design-system-shared": "npm:^0.26.0"
+    "@metamask/design-system-shared": "npm:^0.30.0"
     "@metamask/jazzicon": "npm:^2.0.0"
     "@radix-ui/react-slot": "npm:^1.1.0"
     blo: "npm:^2.0.0"
@@ -737,18 +737,18 @@ __metadata:
     "@metamask/utils": ^11.11.0
     react: ^17.0.0 || ^18.0.0 || ^19.0.0
     react-dom: ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/890bec4e84b0dd6177da8b4bd61b14543347bdb5b4abcdbbe18b4743247cdbbe9eca0e618eb68da6262f244d8cf542102919653b1cb6b06e7dc58fee7ec8cdd1
+  checksum: 10c0/260b0cd01fcc7fce8e97d7f3a0d54a2580508b7079bef2b1d6cccf8c0477c17e1ea7a379ad8e3d6ad83d5479940cb2635d12b08636cc769f7c5ec0c9ad9943f9
   languageName: node
   linkType: hard
 
-"@metamask/design-system-shared@npm:^0.26.0":
-  version: 0.26.0
-  resolution: "@metamask/design-system-shared@npm:0.26.0"
+"@metamask/design-system-shared@npm:^0.30.0":
+  version: 0.30.0
+  resolution: "@metamask/design-system-shared@npm:0.30.0"
   dependencies:
     "@metamask/utils": "npm:^11.11.0"
   peerDependencies:
     react: ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/59f387fde0d83a9679fa49e08774efc7f48c7600b0d0327f3ae5b64939c600813bdde62c39eaae057a5de2783da3f1ea571e35e2c20faebc8761eebd51223e4c
+  checksum: 10c0/3e79f7662eb570e3aabe822b04b0f3d9e2123b36aec541b5023b46f2f8c5edf021587605f7b9be21375827eeb486d3f9fa877e5a5604d469e4674484ac774198
   languageName: node
   linkType: hard
 
@@ -4151,7 +4151,7 @@ __metadata:
     "@dnd-kit/sortable": "npm:^10.0.0"
     "@dnd-kit/utilities": "npm:^3.2.2"
     "@eslint/js": "npm:^10.0.1"
-    "@metamask/design-system-react": "npm:^0.30.0"
+    "@metamask/design-system-react": "npm:^0.33.0"
     "@metamask/design-system-tailwind-preset": "npm:^0.10.0"
     "@metamask/design-tokens": "npm:^8.6.0"
     "@metamask/utils": "npm:^11.10.0"
